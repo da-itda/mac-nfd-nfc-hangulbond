@@ -1,5 +1,10 @@
 {
   "extName": { "message": "한글본드 - 업로드 파일명 자소 분리 방지" },
   "extShortName": { "message": "한글본드" },
-  "extDescription": { "message": "맥 Chrome에서 올린 한글 파일명이 Windows·웹에서 ㅎㅏㄴㄱㅡㄹ처럼 깨지는 문제를, 업로드하는 순간 자동으로 막아 줍니다." }
+  "extDescription": { "message": "맥 Chrome에서 올린 한글 파일명이 Windows·웹에서 ㅎㅏㄴㄱㅡㄹ처럼 깨지는 문제를, 업로드하는 순간 자동으로 막아 줍니다." },
+  "uploadTitle": { "message": "업로드 파일명 정리" },
+  "alwaysOn": { "message": "항상 켜짐" },
+  "uploadHelp": { "message": "맥 Chrome에서 올리는 파일 이름을 정상 형태(NFC)로 바꿔 보냅니다." },
+  "downloadTitle": { "message": "다운로드 파일명 정리" },
+  "downloadHelp": { "message": "받은 파일 이름이 자소 분리돼 있으면 정상 형태로 바꿔 저장합니다. 켜면 Chrome이 다운로드 관리 권한을 묻습니다." }
 }

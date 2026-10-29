@@ -1,13 +1,15 @@
 // 한글본드 브라우저 확장 E2E 테스트
-// 실제 확장을 설치한 Chrome for Testing으로 업로드를 재현하고, 서버가 받은 파일명이 NFC인지 확인한다.
+// 실제 확장을 설치한 Chrome으로 업로드를 재현하고, 서버가 받은 파일명이 NFC인지 확인한다.
 // 맥 Chromium 파일 선택창이 넘기는 형태와 같게 NFD 경로를 넘긴다.
+// 다운로드는 서버가 NFD 이름을 보낼 때 디스크에 저장된 이름을 확인한다.
 //
 // 실행: npm run test:extension
 // 설치된 Chrome을 임시 프로필로 띄우고, 공식 디버깅 명령(Extensions.loadUnpacked)으로 확장을 설치한다.
 // 평소 쓰는 Chrome 프로필은 건드리지 않는다. 다른 Chrome을 쓰려면 CHROME_PATH를 지정한다.
 // 웹 스토어에서 받은 패키지를 풀어 검사하려면 EXTENSION_DIR에 그 폴더를 지정한다.
+// 권한 요청 창은 자동으로 누를 수 없어서, 다운로드 기능을 켠 상태는 downloads 권한을 미리 넣은 사본으로 검사한다.
 import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -26,6 +28,22 @@ writeFileSync(nfcPath, "nfc");
 const folderPath = join(workDir, "업로드폴더".normalize("NFD"));
 mkdirSync(folderPath);
 writeFileSync(join(folderPath, nfdName), "nfd");
+
+// 다운로드 기능을 켠 상태: optional_permissions의 downloads를 처음부터 허용한 사본
+const grantedDir = join(workDir, "extension-downloads");
+cpSync(extensionDir, grantedDir, { recursive: true });
+const grantedManifest = JSON.parse(readFileSync(join(grantedDir, "manifest.json"), "utf8"));
+grantedManifest.permissions = [...(grantedManifest.permissions || []), ...grantedManifest.optional_permissions];
+delete grantedManifest.optional_permissions;
+writeFileSync(join(grantedDir, "manifest.json"), JSON.stringify(grantedManifest));
+
+// 서버가 다운로드 이름을 보내는 방식별 응답. 옛날 방식(filename="...")과 주소 경로는 Chrome이 NFD를 그대로 저장한다.
+const latin1 = (name) => Buffer.from(name).toString("latin1");
+const downloads = {
+  legacy: { name: "나_옛날방식.txt".normalize("NFD"), header: (name) => `attachment; filename="${latin1(name)}"` },
+  nfc: { name: "라_정상이름.txt".normalize("NFC"), header: (name) => `attachment; filename="${latin1(name)}"` }
+};
+const pathDownloadName = "마_주소경로.txt".normalize("NFD");
 
 const PAGE = `<!doctype html><meta charset="utf-8"><title>e2e</title>
 <style>#drop{position:fixed;left:0;top:0;width:400px;height:200px;border:1px dashed #999}
@@ -69,6 +87,17 @@ const results = new Map();
 const server = createServer((req, res) => {
   if (process.env.E2E_DEBUG) console.error("요청:", req.method, req.url);
   const url = new URL(req.url, "http://127.0.0.1");
+  const download = downloads[url.pathname.slice("/download/".length)];
+  if (url.pathname.startsWith("/download/") && download) {
+    res.writeHead(200, { "Content-Type": "application/octet-stream", "Content-Disposition": download.header(download.name) });
+    res.end("download");
+    return;
+  }
+  if (url.pathname.startsWith("/file/")) {
+    res.writeHead(200, { "Content-Type": "application/octet-stream" });
+    res.end("download");
+    return;
+  }
   if (req.method === "POST" && url.pathname === "/upload") {
     const chunks = [];
     req.on("data", (chunk) => chunks.push(chunk));
@@ -89,8 +118,15 @@ const pageUrl = `http://127.0.0.1:${server.address().port}/`;
 
 const form = (name) => (name === name.normalize("NFC") ? "NFC" : "NFD");
 
-async function launch(withExtension) {
+async function launch(extension) {
   const profile = mkdtempSync(join(workDir, "profile-"));
+  const downloadDir = join(profile, "downloads");
+  mkdirSync(join(profile, "Default"), { recursive: true });
+  mkdirSync(downloadDir);
+  writeFileSync(
+    join(profile, "Default", "Preferences"),
+    JSON.stringify({ download: { default_directory: downloadDir, prompt_for_download: false, directory_upgrade: true } })
+  );
   const args = [
     "--headless=new",
     "--no-first-run",
@@ -125,12 +161,44 @@ async function launch(withExtension) {
       toChrome.write(JSON.stringify({ id, method, params, sessionId }) + "\0");
     });
 
-  if (withExtension) {
-    await call("Extensions.loadUnpacked", { path: extensionDir });
+  if (extension) {
+    const { id: extensionId } = await call("Extensions.loadUnpacked", { path: extension });
+    // 설치 직후에는 서비스 워커(background.js)가 아직 뜨지 않았을 수 있다. 뜰 때까지 기다린다.
+    for (let i = 0; i < 50; i += 1) {
+      const { targetInfos } = await call("Target.getTargets");
+      if (targetInfos.some((t) => t.type === "service_worker" && t.url.includes(extensionId))) break;
+      await sleep(100);
+    }
   }
 
   const browser = {
     session: null,
+    downloadDir,
+    // 쉬고 있던 서비스 워커가 다운로드 이벤트로 다시 뜨는지 보려고 확장 서비스 워커를 끈다.
+    async stopWorkers() {
+      const { targetInfos } = await call("Target.getTargets");
+      const workers = targetInfos.filter((t) => t.type === "service_worker");
+      for (const worker of workers) {
+        await call("Target.closeTarget", { targetId: worker.targetId });
+      }
+      for (let i = 0; i < 30; i += 1) {
+        const { targetInfos: after } = await call("Target.getTargets");
+        if (!after.some((t) => t.type === "service_worker")) return workers.length > 0;
+        await sleep(100);
+      }
+      return false;
+    },
+    // 다운로드 주소를 새 탭으로 열고, 저장이 끝난 파일 이름을 돌려준다.
+    async download(path) {
+      const before = new Set(readdirSync(downloadDir));
+      await call("Target.createTarget", { url: pageUrl + path.slice(1) });
+      for (let i = 0; i < 50; i += 1) {
+        const added = readdirSync(downloadDir).filter((name) => !before.has(name) && !name.endsWith(".crdownload"));
+        if (added.length) return added[0];
+        await sleep(100);
+      }
+      return null;
+    },
     send: (method, params) => call(method, params, browser.session),
     // 시나리오마다 새 탭을 열어 서로 영향을 주지 않게 한다.
     async newPage(url) {
@@ -193,7 +261,7 @@ function check(label, ok, detail) {
 }
 
 try {
-  const plain = await launch(false);
+  const plain = await launch(null);
   await openPage(plain);
   await setFiles(plain, "document.getElementById('js')", [nfdPath]);
   const baseline = await waitFor("js");
@@ -201,7 +269,7 @@ try {
   plain.close();
   results.clear();
 
-  const browser = await launch(true);
+  const browser = await launch(extensionDir);
 
   await openPage(browser);
   await setFiles(browser, "document.getElementById('js')", [nfdPath]);
@@ -247,7 +315,23 @@ try {
     `${folder?.names.map(form).join(",")}, 경로 유지=${folder?.names[0]?.includes("/")}`
   );
 
+  const off = await browser.download("/download/legacy");
+  check("7. 다운로드 기능 꺼짐(기본): 받은 이름을 건드리지 않음", off === downloads.legacy.name, off && form(off));
   browser.close();
+
+  const granted = await launch(grantedDir);
+  const legacy = await granted.download("/download/legacy");
+  check("8. 다운로드 기능 켬: 옛날 방식 이름을 NFC로 저장", legacy === downloads.legacy.name.normalize("NFC"), legacy && form(legacy));
+  const byPath = await granted.download(`/file/${encodeURIComponent(pathDownloadName)}`);
+  check("9. 다운로드 기능 켬: 주소 경로 이름을 NFC로 저장", byPath === pathDownloadName.normalize("NFC"), byPath && form(byPath));
+  const nfcDownload = await granted.download("/download/nfc");
+  check("10. 다운로드 기능 켬: 이미 NFC인 이름은 그대로", nfcDownload === downloads.nfc.name, nfcDownload && form(nfcDownload));
+  const again = await granted.download("/download/legacy");
+  check("11. 다운로드 기능 켬: 같은 이름이 있으면 덮어쓰지 않음", again && again !== legacy && again === again.normalize("NFC"), again);
+  const stopped = await granted.stopWorkers();
+  const woke = await granted.download(`/file/${encodeURIComponent("바_다시깨움.txt".normalize("NFD"))}`);
+  check("12. 서비스 워커가 꺼져 있어도 다운로드 때 다시 떠서 NFC로 저장", stopped && woke === woke?.normalize("NFC"), `워커 종료=${stopped}, ${woke && form(woke)}`);
+  granted.close();
 } finally {
   server.close();
   await sleep(300);

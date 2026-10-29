@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; --muted: #666; --line: #ddd; --accent: #1a73e8; }
+  @media (prefers-color-scheme: dark) { :root { --muted: #aaa; --line: #444; --accent: #8ab4f8; } }
+  body { margin: 0; padding: 16px; width: 300px; font: 13px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; }
+  header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  header img { width: 24px; height: 24px; }
+  h1 { margin: 0; font-size: 15px; }
+  section { padding: 12px 0; border-top: 1px solid var(--line); }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  h2 { margin: 0; font-size: 13px; }
+  p { margin: 4px 0 0; color: var(--muted); }
+  .state { color: var(--muted); white-space: nowrap; }
+  input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <img src="icons/icon-48.png" alt="">
+  <h1 data-i18n="extShortName"></h1>
+</header>
+<section>
+  <div class="row">
+    <h2 data-i18n="uploadTitle"></h2>
+    <span class="state" data-i18n="alwaysOn"></span>
+  </div>
+  <p data-i18n="uploadHelp"></p>
+</section>
+<section>
+  <div class="row">
+    <label for="downloads"><h2 data-i18n="downloadTitle"></h2></label>
+    <input id="downloads" type="checkbox">
+  </div>
+  <p data-i18n="downloadHelp"></p>
+</section>
+<script src="popup.js"></script>
+</body>
+</html>

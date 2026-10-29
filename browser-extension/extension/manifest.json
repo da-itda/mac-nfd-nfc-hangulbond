@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "__MSG_extShortName__",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "__MSG_extDescription__",
   "default_locale": "ko",
   "homepage_url": "https://github.com/da-itda/mac-nfd-nfc-hangulbond",
@@ -12,6 +12,17 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
+  "action": {
+    "default_title": "__MSG_extShortName__",
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "optional_permissions": ["downloads"],
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],

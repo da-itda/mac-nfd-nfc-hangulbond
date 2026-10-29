@@ -1,5 +1,10 @@
 {
   "extName": { "message": "HangulBond - Fix Korean filenames on upload" },
   "extShortName": { "message": "HangulBond" },
-  "extDescription": { "message": "Stops Korean file names uploaded from Chrome on Mac from breaking into separated letters (ㅎㅏㄴㄱㅡㄹ) on Windows and the web." }
+  "extDescription": { "message": "Stops Korean file names uploaded from Chrome on Mac from breaking into separated letters (ㅎㅏㄴㄱㅡㄹ) on Windows and the web." },
+  "uploadTitle": { "message": "Fix upload file names" },
+  "alwaysOn": { "message": "Always on" },
+  "uploadHelp": { "message": "Sends Korean file names uploaded from Chrome on Mac in their normal form (NFC)." },
+  "downloadTitle": { "message": "Fix download file names" },
+  "downloadHelp": { "message": "Saves downloaded files with decomposed Korean names in their normal form. Chrome asks for permission to manage downloads when you turn this on." }
 }

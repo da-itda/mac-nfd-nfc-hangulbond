@@ -4,6 +4,7 @@
 
 - 원인: 맥용 Chromium이 경로를 받을 때 HFS 분해형(NFD)으로 바꿔 업로드한다. 앱으로 디스크 이름을 고쳐도 업로드 단계에서 다시 분리된다 (`docs/TROUBLESHOOTING.md`).
 - 결과: 확장을 켜면 받는 쪽(웹, Windows)에서 `한글.pdf`로 정상 표시된다.
+- 0.2.0부터 다운로드 파일명 정리를 선택 기능으로 제공한다. 서버가 자소 분리된 이름을 보내면 저장하기 직전에 NFC로 바꾼다 (아래 `다운로드 파일명 정리`).
 
 ## 동작 범위
 
@@ -21,12 +22,36 @@
 | Google Drive 파일 업로드 | NFC로 업로드 | 2026-10-26 Aside에 확장 코드 주입해 확인 |
 
 - 파일 내용은 그대로 두고 이름만 바꾼다.
-- 권한을 요청하지 않는다. http·https 페이지에서 콘텐츠 스크립트만 실행한다.
+- 업로드 정리는 권한을 요청하지 않는다. http·https 페이지에서 콘텐츠 스크립트만 실행한다.
 - 데이터를 수집·저장·전송하지 않는다 (`docs/BROWSER_EXTENSION_PRIVACY.md`).
 
 알려진 제한:
 - 드롭 처리 시 원래 이벤트를 멈추고 NFC 파일을 담은 이벤트를 다시 보낸다. 페이지가 처리하지 않고 브라우저 기본 동작에 맡기던 드롭(예: 일반 편집 영역에 이미지 삽입)은 일어나지 않을 수 있다.
 - File System Access API(`showOpenFilePicker`)로 파일을 여는 사이트, Slack 같은 Electron 앱, Mail·텔레그램에는 적용되지 않는다.
+
+## 다운로드 파일명 정리 (선택 기능, 0.2.0)
+
+Chrome·Edge는 서버가 `filename*=UTF-8''…`로 보낸 이름은 NFC로 바꿔 저장하지만, 옛날 방식(`filename="…"`)이나 주소 경로의 이름은 NFD 그대로 저장한다. Windows 탐색기에서는 이 이름이 깨져 보인다 (`docs/TROUBLESHOOTING.md`).
+
+- 켜는 방법: 확장 아이콘(또는 확장 `옵션`)을 눌러 `다운로드 파일명 정리`를 켠다. Chrome이 `다운로드 관리` 권한을 묻고, `허용`을 누르면 바로 동작한다. 권한 창의 기본 버튼은 `거부`다.
+- 끄는 방법: 같은 스위치를 끈다. 권한도 함께 반납한다.
+- 설정을 따로 저장하지 않는다. `downloads` 권한이 있으면 켜진 것으로 본다.
+- 기본은 꺼져 있다. `downloads`를 `optional_permissions`로 두어, 0.1.x 사용자에게 업데이트 시 새 권한 경고로 확장이 꺼지는 일이 없다.
+- 동작: `background.js`가 `chrome.downloads.onDeterminingFilename`에서 이름이 NFC가 아닐 때만 NFC 이름을 제안한다. 같은 이름이 있으면 Chrome 기본 동작대로 `(1)`을 붙인다.
+
+| 시나리오 | 결과 | 확인 |
+|---|---|---|
+| 기능 꺼짐(기본) | 받은 이름을 건드리지 않음 | 자동 테스트 |
+| 옛날 방식 헤더의 NFD 이름 | NFC로 저장 | 자동 테스트 |
+| 주소 경로의 NFD 이름 | NFC로 저장 | 자동 테스트 |
+| 이미 NFC인 이름 | 그대로 | 자동 테스트 |
+| 같은 이름이 이미 있음 | 덮어쓰지 않고 `(1)` 추가 | 자동 테스트 |
+| 서비스 워커가 꺼진 상태 | 다운로드 때 다시 떠서 NFC로 저장 | 자동 테스트 |
+| 실제 화면: 스위치 켜기 → 권한 창 허용 → 다운로드 → 끄기 → 다운로드 | NFC 저장, 끈 뒤에는 NFD 그대로 | 2026-10-29 Windows 11 Chrome 156 |
+
+알려진 제한:
+- zip 등 압축 파일 안의 이름은 바꾸지 못한다.
+- 다른 확장도 `onDeterminingFilename`으로 이름을 바꾸면 Chrome이 먼저 등록된 확장의 제안을 따를 수 있다.
 
 ## 설치
 
@@ -38,9 +63,11 @@
 
 | 명령 | 내용 |
 |---|---|
-| `npm run test:extension` | 설치된 Chrome을 임시 프로필로 띄워 확장을 설치하고 업로드 시나리오 7개를 검사한다. 평소 Chrome 프로필은 건드리지 않는다. |
+| `npm run test:extension` | 설치된 Chrome을 임시 프로필로 띄워 확장을 설치하고 업로드 7개, 다운로드 6개 시나리오를 검사한다. 평소 Chrome 프로필은 건드리지 않는다. |
 | `npm run package:extension` | 웹 스토어 제출용 zip을 `dist/browser-extension/`에 만든다. |
 
+- Windows에서는 `CHROME_PATH`에 `chrome.exe`나 `msedge.exe` 경로를 지정해 같은 테스트를 돌린다. 2026-10-29 Windows 11 Chrome 156·Edge 156 모두 13개 통과.
+- 권한 요청 창은 자동으로 누를 수 없어서, 다운로드 기능을 켠 상태는 `downloads`를 필수 권한으로 바꾼 임시 사본으로 검사한다.
 - 정식 Chrome은 `--load-extension`을 막는다. 테스트는 `--enable-unsafe-extension-debugging` + `--remote-debugging-pipe`로 실행하고 `Extensions.loadUnpacked`로 설치한다.
 - 이 Mac(macOS 27)에서는 Chrome for Testing 156이 페이지를 열지 못해 사용하지 않았다.
 

@@ -23,7 +23,7 @@
 | 구성 | 하는 일 |
 |---|---|
 | 한글본드 앱 | 맥 디스크의 파일명과 폴더명을 NFC로 정리합니다. 지정한 폴더를 감시해 새 파일도 자동으로 정리합니다. |
-| 한글본드 Chrome 확장 | 맥 Chrome이 업로드할 때 이름을 다시 분리해 보내는 문제를 막습니다. |
+| 한글본드 Chrome 확장 | 맥 Chrome이 업로드할 때 이름을 다시 분리해 보내는 문제를 막습니다. 선택 기능으로 내려받는 파일 이름도 정리합니다(Windows에서도 동작). |
 
 ## 설치
 
@@ -60,6 +60,7 @@ curl -fsSL https://raw.githubusercontent.com/da-itda/mac-nfd-nfc-hangulbond/main
 5. 새 파일도 자동으로 정리하려면 `일반` 탭에서 `자동 감시`를 켭니다.
 
 Chrome 확장은 설치만 하면 됩니다. 파일을 올릴 때 자동으로 이름을 NFC로 바꿔 보냅니다.
+내려받은 파일 이름이 깨진다면 Chrome 도구 모음의 한글본드 아이콘을 눌러 `다운로드 파일명 정리`를 켜세요. Chrome이 다운로드 관리 권한을 물으면 `허용`을 누릅니다.
 
 자세한 내용은 [사용 설명서](docs/USER_GUIDE.md)와 [브라우저 확장 안내](docs/BROWSER_EXTENSION.md)를 참고하세요.
 
@@ -89,7 +90,7 @@ curl -fsSL https://raw.githubusercontent.com/da-itda/mac-nfd-nfc-hangulbond/main
 - 정리하기 전에 바뀔 이름을 먼저 보여 주고, 원하는 항목만 고를 수 있습니다.
 - 같은 이름이 이미 있으면 덮어쓰지 않습니다.
 - 지정한 폴더만 다룹니다.
-- Chrome 확장은 별도 권한을 요청하지 않고, 어떤 데이터도 수집하거나 보내지 않습니다. ([개인정보처리방침](docs/BROWSER_EXTENSION_PRIVACY.md))
+- Chrome 확장은 어떤 데이터도 수집하거나 보내지 않습니다. 업로드 정리는 별도 권한이 필요 없고, 다운로드 정리를 켤 때만 다운로드 관리 권한을 요청합니다. ([개인정보처리방침](docs/BROWSER_EXTENSION_PRIVACY.md))
 
 ## 자주 묻는 질문
 

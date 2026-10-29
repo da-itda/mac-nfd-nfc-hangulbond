@@ -25,7 +25,7 @@ Chromium(Chrome·Aside·Edge·Electron 앱)이 맥에서만 NFD로 보내는 이
 해결 방향:
 - 보내는 쪽: 맥 Chrome 웹 업로드는 한글본드 브라우저 확장으로 보정한다 (`docs/BROWSER_EXTENSION.md`). Safari는 확장 없이 정상이다. Mail·텔레그램·Electron 앱은 고칠 수 없다.
 - 받는 쪽: 직접 운영하는 웹 서비스라면 서버에서 업로드 파일명을 NFC로 정규화한다(PHP `Normalizer::normalize($name, Normalizer::FORM_C)`, JS `name.normalize("NFC")`, Python `unicodedata.normalize("NFC", name)`).
-- Windows 수신자: Windows용 한글본드로 저장된 파일명을 정리한다 (계획 검토 중).
+- Windows 수신자: Chrome·Edge로 받는다면 확장 0.2.0의 `다운로드 파일명 정리`를 켠다. 이미 받은 파일은 Windows용 한글본드로 정리한다 (계획 검토 중).
 
 ## Windows에서 받은 파일 이름이 깨진다 (다운로드)
 
@@ -40,6 +40,7 @@ Chromium(Chrome·Aside·Edge·Electron 앱)이 맥에서만 NFD로 보내는 이
 
 - Windows 탐색기는 NFD 이름을 자음·모음이 흩어진 형태로 보여 준다 (탐색기 캡처로 확인).
 - 즉 받는 쪽 문제는 서버가 이름을 어떤 방식으로 보내는지에 달려 있다. 실제 서비스(Gmail, Drive, 게시판)의 방식은 아직 확인하지 않았다.
+- 해결: Chrome 확장 0.2.0의 `다운로드 파일명 정리`를 켜면 위 두 경우도 NFC로 저장한다 (`docs/BROWSER_EXTENSION.md`). 이미 받은 파일이나 압축 파일 안의 이름은 바꾸지 못한다.
 - 시험 스크립트: Windows `C:\Users\R\Documents\nfc_nfd\download-test\dl-test.mjs`
 
 ## 삭제 명령 후에도 메뉴 막대에 한글본드가 남는다
