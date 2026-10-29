@@ -27,6 +27,21 @@ Chromium(Chrome·Aside·Edge·Electron 앱)이 맥에서만 NFD로 보내는 이
 - 받는 쪽: 직접 운영하는 웹 서비스라면 서버에서 업로드 파일명을 NFC로 정규화한다(PHP `Normalizer::normalize($name, Normalizer::FORM_C)`, JS `name.normalize("NFC")`, Python `unicodedata.normalize("NFC", name)`).
 - Windows 수신자: Windows용 한글본드로 저장된 파일명을 정리한다 (계획 검토 중).
 
+## Windows에서 받은 파일 이름이 깨진다 (다운로드)
+
+2026-10-29 Windows 11 26H2, Chrome 156·Edge 156에서 로컬 서버가 NFD 이름을 보내고 브라우저가 실제로 저장한 이름을 확인했다. 맥 Chrome 156도 같은 결과다.
+
+| 서버가 이름을 보내는 방식 | 저장된 이름 |
+|---|---|
+| `filename*=UTF-8''…` (표준) | NFC로 바뀜 |
+| `filename="…"`와 `filename*`를 함께 | NFC로 바뀜 |
+| `filename="…"`만 (UTF-8 그대로) | NFD 유지 |
+| 주소 경로의 파일 이름 | NFD 유지 |
+
+- Windows 탐색기는 NFD 이름을 자음·모음이 흩어진 형태로 보여 준다 (탐색기 캡처로 확인).
+- 즉 받는 쪽 문제는 서버가 이름을 어떤 방식으로 보내는지에 달려 있다. 실제 서비스(Gmail, Drive, 게시판)의 방식은 아직 확인하지 않았다.
+- 시험 스크립트: Windows `C:\Users\R\Documents\nfc_nfd\download-test\dl-test.mjs`
+
 ## 삭제 명령 후에도 메뉴 막대에 한글본드가 남는다
 
 - 원인: macOS가 실행 중인 앱 경로를 자소 분리형(NFD)으로 기록한다. 이전 `install.sh`는 완성형 경로 `/Applications/한글본드.app/...`로 프로세스를 찾아 종료하지 못하고 앱 파일만 지웠다. 앱 파일이 지워진 뒤에는 AppleScript 종료 명령도 앱을 찾지 못한다.
