@@ -43,6 +43,28 @@ Chromium(Chrome·Aside·Edge·Electron 앱)이 맥에서만 NFD로 보내는 이
 - 해결: Chrome 확장 0.2.0의 `다운로드 파일명 정리`를 켜면 위 두 경우도 NFC로 저장한다 (`docs/BROWSER_EXTENSION.md`). 이미 받은 파일이나 압축 파일 안의 이름은 바꾸지 못한다.
 - 시험 스크립트: Windows `C:\Users\R\Documents\nfc_nfd\download-test\dl-test.mjs`
 
+## Windows: 맥 Finder로 압축한 zip이 풀리지 않거나 이름이 깨진다
+
+- 원인: 맥 Finder(`ditto`)는 zip 안 이름을 UTF-8로 저장하지만 UTF-8 표시를 하지 않는다. Windows 기본 도구(탐색기, `tar`, `Expand-Archive`)는 이 이름을 CP949로 읽어 문자가 깨지거나 "잘못된 문자"로 풀지 못한다 (2026-11-11 Windows 11 26H2 확인).
+- 결과: 자소 분리와는 다른 문제라 한글본드로 고칠 수 없다.
+- 해결: 반디집·7-Zip처럼 UTF-8을 인식하는 프로그램으로 푼다. 이렇게 풀면 이름이 자소 분리(NFD) 상태로 나오고, 한글본드가 감시 폴더에서 바로 정리한다. UTF-8 표시가 있는 zip은 탐색기로 풀어도 같다.
+
+## Windows: 파일 이름이 바로 바뀌지 않는다 (사용 중인 파일)
+
+- 원인: Windows는 다른 프로그램이 열고 있는 파일의 이름을 바꿀 수 없다 (os error 32).
+- 결과: 로그에 "다른 프로그램이 파일을 사용 중입니다. 닫으면 다시 시도합니다."가 한 번 남는다.
+- 해결: 파일을 닫으면 5초 안팎의 주기 검사에서 정리된다.
+
+## Windows: `cargo test`가 0xc0000139(STATUS_ENTRYPOINT_NOT_FOUND)로 시작하지 못한다
+
+- 원인: tauri-build는 공용 컨트롤 v6 manifest를 앱 실행 파일에만 넣는다. 테스트 실행 파일은 예전 공용 컨트롤을 불러 진입점을 찾지 못한다.
+- 해결: `src-tauri/build.rs`가 `windows-app-manifest.xml`을 링커 옵션으로 모든 실행 파일에 넣는다.
+
+## Windows: 트레이 아이콘이 보이지 않는다
+
+- Windows 11은 새 트레이 아이콘을 작업 표시줄 오른쪽 `^`(숨겨진 아이콘) 안에 둔다. 끌어서 작업 표시줄로 옮기거나, 설정 > 개인 설정 > 작업 표시줄 > 기타 시스템 트레이 아이콘에서 켠다.
+- 아이콘 색은 작업 표시줄 테마에 맞춘다(밝게: 검은색, 어둡게: 흰색).
+
 ## 삭제 명령 후에도 메뉴 막대에 한글본드가 남는다
 
 - 원인: macOS가 실행 중인 앱 경로를 자소 분리형(NFD)으로 기록한다. 이전 `install.sh`는 완성형 경로 `/Applications/한글본드.app/...`로 프로세스를 찾아 종료하지 못하고 앱 파일만 지웠다. 앱 파일이 지워진 뒤에는 AppleScript 종료 명령도 앱을 찾지 못한다.

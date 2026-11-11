@@ -115,4 +115,5 @@ curl -fsSL https://raw.githubusercontent.com/da-itda/mac-nfd-nfc-hangulbond/main
 - 구현: Tauri 2, Rust, JavaScript
 - 소스에서 실행: Node.js 20 이상과 Rust를 준비한 뒤 `npm install`, `npm run dev`
 - 테스트: `npm test`, `npm run test:rust`, `npm run test:extension`
+- Windows 빌드(개발 중): Windows에서 Node.js·Rust·Visual Studio Build Tools를 준비하고 `npm ci` 후 `npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'`
 - 문서 목록: [docs/README.md](docs/README.md)
