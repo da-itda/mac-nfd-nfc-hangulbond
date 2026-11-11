@@ -5,10 +5,10 @@ const updater = window.__TAURI__.updater;
 const appWindow = window.__TAURI__.window.getCurrentWindow();
 const { LogicalSize } = window.__TAURI__.dpi;
 
-// Windows에서는 컴피 공용 디자인 기준(styles.css의 platform-windows)을 입힌다. 맥 화면은 그대로다.
-if (navigator.userAgent.includes("Windows")) {
-  document.documentElement.classList.add("platform-windows");
-}
+// 두 OS 모두 컴피 공용 디자인 기준을 쓴다. 맥은 styles.css의 platform-mac에서 조금 부드럽게 다듬는다.
+document.documentElement.classList.add(
+  navigator.userAgent.includes("Windows") ? "platform-windows" : "platform-mac"
+);
 
 const MAX_WINDOW_HEIGHT = 720;
 

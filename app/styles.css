@@ -1,22 +1,99 @@
-:root {
-  --app-bg: #f1f1f3;
-  --panel-bg: #f7f7f8;
-  --row-bg: #f7f7f8;
-  --control-bg: #ececee;
-  --line: #d7d7da;
-  --line-soft: #e3e3e6;
-  --text: #1d1d1f;
-  --muted: #747479;
-  --accent: #007aff;
-  --icon-muted: #8e8e93;
-  --icon-active: #3a3a3c;
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.08);
-  color: #1d1d1f;
-  background: var(--app-bg);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
-  font-size: 13px;
+/* ─────────────────────────────────────────────────────────────
+   컴피 공용 디자인 기준 2판 (comfy-software-design v2.0)
+   재료는 바닥·얹히는 면·단추 셋. 층은 1px 선으로 가르고, 강조색은 #374151 고정.
+   밝게·어둡게는 시스템을 따른다.
+   main.js가 <html>에 platform-mac 또는 platform-windows를 단다.
+   맥은 맨 아래 .platform-mac에서 모서리와 선을 조금 부드럽게 한다.
+   ───────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("./fonts/Pretendard-Regular.woff2") format("woff2");
   font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("./fonts/Pretendard-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+:root {
+  --app-bg: #fafafa;
+  --layer-bg: #ffffff;
+  --card-bg: #ffffff;
+  --control-bg: #ffffff;
+  --control-bg-hover: #f5f5f5;
+  --control-bg-pressed: #ededed;
+  --control-bg-disabled: #f7f7f7;
+  --control-alt-bg: #f0f0f0;
+  --subtle-hover: rgba(0, 0, 0, 0.051);
+  --subtle-pressed: rgba(0, 0, 0, 0.031);
+  --card-stroke: #e6e6e6;
+  --control-stroke: #e0e0e0;
+  --control-stroke-bottom: #cbcbcb;
+  --control-stroke-strong: #8a8a8a;
+  --divider: #ebebeb;
+  --focus: #374151;
+  --text: #1f2937;
+  --text-secondary: #5b6472;
+  --text-tertiary: #8c939d;
+  --text-disabled: #adb2b9;
+  --text-on-accent: #ffffff;
+  --danger: #c0392f;
+  --success: #157347;
+  --accent: #374151;
+  --accent-hover: #4b5563;
+  --accent-pressed: #29323f;
+  --accent-text: #374151;
+  /* 모서리·카드 간격. 맥은 .platform-mac에서 조금 키운다. */
+  --radius-card: 4px;
+  --radius-control: 4px;
+  --radius-check: 3px;
+  --card-gap: 3px;
+  /* 드롭다운 화살표(Phosphor caret-down)는 배경 그림이라 글자색을 못 받아 색을 직접 넣는다. */
+  --caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%235b6472'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
   color-scheme: light;
+  color: var(--text);
+  background: var(--app-bg);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #1a1a1a;
+    --layer-bg: #242424;
+    --card-bg: #272727;
+    --control-bg: #2b2b2b;
+    --control-bg-hover: #323232;
+    --control-bg-pressed: #383838;
+    --control-bg-disabled: #242424;
+    --control-alt-bg: #1f1f1f;
+    --subtle-hover: rgba(255, 255, 255, 0.078);
+    --subtle-pressed: rgba(255, 255, 255, 0.039);
+    --card-stroke: #353535;
+    --control-stroke: #3b3b3b;
+    --control-stroke-bottom: #191919;
+    --control-stroke-strong: #989898;
+    --divider: #303030;
+    --focus: #e4e4e4;
+    --text: #f2f2f2;
+    --text-secondary: #b4b4b4;
+    --text-tertiary: #888888;
+    --text-disabled: #666666;
+    --danger: #e8827a;
+    --success: #6fc28c;
+    --accent: #4b5563;
+    --accent-hover: #5d6a7b;
+    --accent-pressed: #3b4553;
+    --accent-text: #aeb9c7;
+    --caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%23b4b4b4'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -46,48 +123,83 @@ p {
   margin: 0;
 }
 
-p {
-  color: var(--muted);
+p,
+.message,
+#progress-detail,
+.progress-caption {
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
+h2 {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+h3 {
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 머리말 띠: 얹히는 면 + 아래 1px 구분선. 선택된 탭은 강조색 막대로 표시한다. */
 .tabs {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 64px;
-  padding: 8px 18px 9px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(248, 248, 249, 0.92);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.64);
+  gap: 4px;
+  min-height: 60px;
+  padding: 6px 28px 0;
+  border-bottom: 1px solid var(--divider);
+  background: var(--layer-bg);
 }
 
 .tab {
-  width: 66px;
-  min-height: 48px;
+  position: relative;
+  width: 72px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 5px 4px 9px;
   border: 0;
-  border-radius: 8px;
-  padding: 4px 4px 5px;
-  color: var(--icon-muted);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
   background: transparent;
   font: inherit;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1.1;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
-.tab:hover {
-  background: rgba(0, 0, 0, 0.04);
+.tab:hover:not(:disabled) {
+  background: var(--subtle-hover);
+}
+
+.tab:active:not(:disabled) {
+  background: var(--subtle-pressed);
 }
 
 .tab.active {
-  color: var(--icon-active);
-  background: rgba(0, 0, 0, 0.06);
+  color: var(--text);
+  background: transparent;
+  font-weight: 600;
 }
 
-/* Phosphor Light 아이콘: SVG를 마스크로 쓰고 글자색(currentColor)으로 칠한다. */
+.tab.active::after {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 16px;
+  height: 3px;
+  margin-left: -8px;
+  border-radius: 2px;
+  background: var(--accent);
+  content: "";
+}
+
+/* Phosphor Regular 아이콘: SVG를 마스크로 쓰고 글자색(currentColor)으로 칠한다. */
 .icon {
   display: inline-block;
   width: 16px;
@@ -102,50 +214,50 @@ p {
 }
 
 .icon-gear-six {
-  -webkit-mask-image: url("./icons/gear-six.svg");
-  mask-image: url("./icons/gear-six.svg");
+  -webkit-mask-image: url("./icons/regular/gear.svg");
+  mask-image: url("./icons/regular/gear.svg");
 }
 
 .icon-folder-simple {
-  -webkit-mask-image: url("./icons/folder-simple.svg");
-  mask-image: url("./icons/folder-simple.svg");
+  -webkit-mask-image: url("./icons/regular/folder.svg");
+  mask-image: url("./icons/regular/folder.svg");
 }
 
 .icon-clock-counter-clockwise {
-  -webkit-mask-image: url("./icons/clock-counter-clockwise.svg");
-  mask-image: url("./icons/clock-counter-clockwise.svg");
+  -webkit-mask-image: url("./icons/regular/clock-counter-clockwise.svg");
+  mask-image: url("./icons/regular/clock-counter-clockwise.svg");
 }
 
 .icon-info {
-  -webkit-mask-image: url("./icons/info.svg");
-  mask-image: url("./icons/info.svg");
+  -webkit-mask-image: url("./icons/regular/info.svg");
+  mask-image: url("./icons/regular/info.svg");
 }
 
 .icon-plus {
-  -webkit-mask-image: url("./icons/plus.svg");
-  mask-image: url("./icons/plus.svg");
+  -webkit-mask-image: url("./icons/regular/plus.svg");
+  mask-image: url("./icons/regular/plus.svg");
 }
 
 .icon-minus {
-  -webkit-mask-image: url("./icons/minus.svg");
-  mask-image: url("./icons/minus.svg");
+  -webkit-mask-image: url("./icons/regular/minus.svg");
+  mask-image: url("./icons/regular/minus.svg");
 }
 
 .tab-icon {
   display: block;
-  width: 24px;
-  height: 24px;
-  margin: 0 auto 3px;
+  width: 20px;
+  height: 20px;
+  margin: 0 auto 4px;
 }
 
-/* 창 높이를 내용에 맞추기 위해 패널은 늘어나지 않고, 공간이 부족할 때만 줄어들며 스크롤한다. */
+/* 작업 영역: 바닥 위 좌우 28px 여백.
+   창 높이를 내용에 맞추기 위해 패널은 늘어나지 않고, 공간이 부족할 때만 줄어들며 스크롤한다. */
 .tab-panel {
   display: none;
   width: 100%;
   flex: 0 1 auto;
-  max-width: 470px;
   margin: 0 auto;
-  padding: 16px 18px 18px;
+  padding: 20px 28px 24px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -154,46 +266,38 @@ p {
   display: block;
 }
 
-h2 {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-h3 {
-  margin-bottom: 8px;
-  color: #3a3a3c;
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .app-header {
   display: flex;
   align-items: center;
-  gap: 11px;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .app-header-icon {
   flex: 0 0 auto;
   width: 40px;
   height: 40px;
-  border-radius: 9px;
+  border-radius: 8px;
   object-fit: cover;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
 }
 
 .app-header h2 {
   margin-bottom: 2px;
-  font-size: 16px;
-  font-weight: 500;
 }
 
+/* 항목 카드: 얹히는 면 + 1px 테두리, 카드 간격으로 쌓는다. */
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: var(--card-gap);
+  margin-bottom: 20px;
+}
+
+.metrics div,
+.batch-progress {
+  border: 1px solid var(--card-stroke);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
 }
 
 .metrics div {
@@ -201,188 +305,291 @@ h3 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 70px;
+  min-height: 68px;
   padding: 9px 10px;
   text-align: center;
-  border-radius: 8px;
-  background: var(--panel-bg);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.065), var(--shadow-soft);
 }
 
 .metrics span {
   display: block;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .metrics strong {
   display: block;
   margin-top: 6px;
-  font-size: 13px;
+  color: var(--text);
+  font-size: 14px;
   font-weight: 600;
-}
-
-.settings-group {
-  overflow: hidden;
-  border-radius: 8px;
-  background: var(--panel-bg);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.07), var(--shadow-soft);
 }
 
 .setting-row {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  min-height: 34px;
-  padding: 5px 12px;
+  gap: 16px;
+  min-height: 48px;
+  margin-bottom: var(--card-gap);
+  padding: 8px 16px;
+  border: 1px solid var(--card-stroke);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
   color: var(--text);
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.general-settings .setting-row {
-  grid-template-columns: 150px minmax(0, 1fr);
-}
-
-.folder-settings .setting-row {
-  grid-template-columns: 100px minmax(0, 1fr);
+  font-size: 14px;
 }
 
 .setting-row > span:first-child {
-  color: #242426;
+  color: var(--text);
   text-align: left;
 }
 
-.setting-row + .setting-row {
-  border-top: 1px solid var(--line-soft);
+/* 일반: 이름은 왼쪽, 컨트롤은 오른쪽. 폴더·정보: 값이 같은 자리에서 시작하도록 이름 칸을 고정한다. */
+.general-settings .setting-row {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.folder-settings .setting-row,
+.about-details .setting-row {
+  grid-template-columns: 100px minmax(0, 1fr);
+}
+
+.general-settings select {
+  justify-self: end;
+}
+
+.folder-settings,
+.about-details {
+  margin-top: 20px;
+}
+
+/* 컨트롤은 카드 오른쪽에 붙인다. 글자는 스위치 왼쪽. */
 .row-control {
   display: flex;
   align-items: center;
-  justify-self: start;
-  justify-content: flex-start;
-  gap: 8px;
+  justify-self: end;
+  gap: 10px;
   min-width: 0;
-  width: auto;
-  color: #3a3a3c;
+  color: var(--text-secondary);
 }
 
+.row-control > span {
+  order: -1;
+}
+
+/* 켜고 끄기만 하는 줄은 "켬 / 끔"을 적는다. */
+.general-settings .row-control > span {
+  width: 26px;
+  font-size: 0;
+  text-align: right;
+}
+
+.general-settings .row-control > span::before {
+  font-size: 14px;
+  content: "끔";
+}
+
+.general-settings .row-control > input:checked + span::before {
+  content: "켬";
+}
+
+/* 읽기 전용 경로 칸: 눌린 것처럼 보이는 자리라 control-alt-bg */
 .path-field {
   justify-self: stretch;
   min-width: 0;
-  padding: 4px 9px;
-  border-radius: 7px;
-  background: var(--control-bg);
-  color: #3a3a3c;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--control-stroke);
+  border-radius: var(--radius-control);
+  background: var(--control-alt-bg);
+  color: var(--text-secondary);
+  line-height: 20px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.03);
 }
 
+/* 단추: 흰 면 + 1px 선, 아래 한 줄만 진하다. 누르면 그 줄이 사라진다. */
 select,
 button {
-  min-height: 25px;
-  border: 0;
-  border-radius: 7px;
-  background: #ececee;
+  min-height: 32px;
+  border: 1px solid var(--control-stroke);
+  border-bottom-color: var(--control-stroke-bottom);
+  border-radius: var(--radius-control);
+  background-color: var(--control-bg);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
-  font-weight: 400;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.045), var(--shadow-soft);
-}
-
-select {
-  justify-self: start;
-  width: 136px;
-  padding: 0 26px 0 10px;
+  font-size: 14px;
 }
 
 button {
-  padding: 0 12px;
+  min-width: 80px;
+  padding: 0 12px 1px;
 }
 
-button:hover:not(:disabled) {
-  background: #e4e4e7;
+button:hover:not(:disabled),
+select:hover:not(:disabled) {
+  background-color: var(--control-bg-hover);
 }
 
 button:active:not(:disabled) {
-  background: #dadaDE;
+  border-bottom-color: var(--control-stroke);
+  background-color: var(--control-bg-pressed);
 }
 
-button:disabled {
-  color: #ababaf;
-  background: #f0f0f2;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.035);
+button:disabled,
+select:disabled {
+  border-color: var(--control-stroke);
+  background-color: var(--control-bg-disabled);
+  color: var(--text-disabled);
 }
 
-input[type="checkbox"],
-input[type="radio"] {
-  position: relative;
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  margin: 0;
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+.plain-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+select {
+  width: 136px;
+  padding: 0 32px 1px 11px;
   appearance: none;
-  border: 0;
-  background: #e7e7e9;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.035);
+  background-image: var(--caret);
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-size: 11px 11px;
+}
+
+/* 주 동작 단추: 폴더 탭의 "시작". 검사 결과가 있으면 위쪽 "시작"은 숨겨져 화면에 하나만 있다. */
+#scan-folder:not(:disabled),
+#normalize-folder:not(:disabled) {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
+#scan-folder:hover:not(:disabled),
+#normalize-folder:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background-color: var(--accent-hover);
+}
+
+#scan-folder:active:not(:disabled),
+#normalize-folder:active:not(:disabled) {
+  border-color: var(--accent-pressed);
+  background-color: var(--accent-pressed);
+}
+
+.cancel-button {
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 9px;
+  color: var(--danger);
 }
 
 input[type="checkbox"] {
-  border-radius: 5px;
+  position: relative;
+  flex: 0 0 auto;
+  margin: 0;
+  appearance: none;
 }
 
-input[type="radio"] {
+/* 토글 스위치 40x20: 꺼짐은 눌린 면 + 진한 테두리, 켜짐은 강조색 */
+.setting-row input[type="checkbox"] {
+  width: 40px;
+  height: 20px;
+  border: 1px solid var(--control-stroke-strong);
+  border-radius: 10px;
+  background: var(--control-alt-bg);
+}
+
+.setting-row input[type="checkbox"]::after {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  background: var(--text-secondary);
+  content: "";
+  transition: left 0.1s ease, width 0.1s ease, height 0.1s ease, top 0.1s ease;
 }
 
-input[type="checkbox"]:checked,
-input[type="radio"]:checked {
+.setting-row input[type="checkbox"]:hover:not(:disabled)::after {
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+}
+
+.setting-row input[type="checkbox"]:checked {
+  border-color: var(--accent);
   background: var(--accent);
 }
 
-input[type="checkbox"]:checked::after {
+.setting-row input[type="checkbox"]:checked::after {
+  left: 23px;
+  background: var(--text-on-accent);
+}
+
+.setting-row input[type="checkbox"]:checked:hover:not(:disabled)::after {
+  left: 22px;
+}
+
+.setting-row input[type="checkbox"]:disabled {
+  border-color: var(--text-disabled);
+  background: var(--control-bg-disabled);
+}
+
+.setting-row input[type="checkbox"]:disabled::after {
+  background: var(--text-disabled);
+}
+
+.setting-row input[type="checkbox"]:checked:disabled {
+  border-color: var(--text-disabled);
+  background: var(--text-disabled);
+}
+
+.setting-row input[type="checkbox"]:checked:disabled::after {
+  background: var(--control-bg-disabled);
+}
+
+/* 여러 개 중에서 고르는 자리(검사 결과)만 확인란 20x20 */
+.target-check input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--control-stroke-strong);
+  border-radius: var(--radius-check);
+  background: var(--control-alt-bg);
+}
+
+.target-check input[type="checkbox"]:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.target-check input[type="checkbox"]:checked::after {
   position: absolute;
-  left: 5px;
-  top: 2px;
-  width: 4px;
-  height: 8px;
-  border: solid #ffffff;
-  border-width: 0 2px 2px 0;
+  left: 3px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  background: var(--text-on-accent);
   content: "";
-  transform: rotate(45deg);
+  -webkit-mask: url("./icons/regular/check.svg") center / contain no-repeat;
+  mask: url("./icons/regular/check.svg") center / contain no-repeat;
 }
 
-input[type="radio"]:checked::after {
-  position: absolute;
-  inset: 5px;
-  border-radius: 50%;
-  background: #ffffff;
-  content: "";
-}
-
-input[type="checkbox"]:disabled,
-input[type="radio"]:disabled {
-  background: #eeeeef;
-}
-
-input[type="checkbox"]:checked:disabled,
-input[type="radio"]:checked:disabled {
-  background: #8dbfff;
-}
-
-.folder-table {
+/* 목록 우물: 얹히는 면 + 1px 테두리. 줄은 칠하지 않고 호버·선택만 표시한다. */
+.folder-table,
+.logs {
   overflow: hidden;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: #efeff1;
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--card-stroke);
+  border-radius: var(--radius-card);
+  background: var(--layer-bg);
 }
 
 .folder-list {
@@ -395,32 +602,28 @@ input[type="radio"]:checked:disabled {
 .folder-list li {
   display: flex;
   align-items: center;
-  min-height: 32px;
-  padding: 5px 10px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  min-height: 36px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--divider);
   color: var(--text);
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.folder-list li:nth-child(even) {
-  background: #f5f5f6;
-}
-
-.folder-list li:nth-child(odd) {
-  background: #ededf0;
+  font-size: 14px;
 }
 
 .folder-row {
   cursor: default;
 }
 
+.folder-row:hover,
 .folder-row.is-selected {
-  background: #d9eaff !important;
+  background: var(--subtle-hover);
+}
+
+.folder-row.is-selected {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .folder-row.is-disabled {
-  color: #8e8e93;
+  color: var(--text-tertiary);
 }
 
 .folder-main {
@@ -436,12 +639,13 @@ input[type="radio"]:checked:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .folder-meta {
   overflow: hidden;
-  color: var(--muted);
+  color: var(--text-secondary);
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -452,17 +656,15 @@ input[type="radio"]:checked:disabled {
 }
 
 .folder-badges span {
-  padding: 1px 5px;
-  border-radius: 5px;
-  background: #e8e8eb;
-  color: #68686d;
-  font-size: 10px;
-  font-weight: 400;
+  padding: 1px 6px;
+  border-radius: var(--radius-control);
+  background: var(--control-alt-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 
 .folder-row.is-enabled .folder-badges span:first-child {
-  background: #e4f4e7;
-  color: #188038;
+  color: var(--success);
 }
 
 .empty-row {
@@ -471,40 +673,40 @@ input[type="radio"]:checked:disabled {
 
 .table-controls {
   display: flex;
-  height: 22px;
-  border-top: 1px solid var(--line);
-  background: #efeff1;
+  height: 28px;
+  background: var(--layer-bg);
 }
 
 .control-button {
-  width: 24px;
-  min-height: 22px;
+  width: 32px;
+  min-width: 0;
+  min-height: 28px;
   padding: 0;
-  border-width: 0 1px 0 0;
-  border-color: #c8c8cb;
+  border: 0;
+  border-right: 1px solid var(--divider);
   border-radius: 0;
-  background: #efeff1;
-  color: var(--icon-muted);
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 18px;
-  box-shadow: none;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.control-button:hover:not(:disabled) {
+  background: var(--subtle-hover);
+}
+
+.control-button:active:not(:disabled) {
+  background: var(--subtle-pressed);
+}
+
+.control-button:disabled {
+  background: transparent;
+  color: var(--text-disabled);
 }
 
 .control-button .icon {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   margin: 0 auto;
-}
-
-.control-button:disabled {
-  color: #c7c7cc;
-  background: #efeff1;
-}
-
-.folder-settings {
-  margin-top: 14px;
 }
 
 .action-row {
@@ -512,7 +714,7 @@ input[type="radio"]:checked:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 7px;
+  margin-top: 12px;
 }
 
 .action-row[hidden],
@@ -520,25 +722,19 @@ input[type="radio"]:checked:disabled {
   display: none;
 }
 
-.action-row h3 {
+.action-row h3,
+.result-head h3 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 500;
 }
 
 .message {
   min-height: 16px;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 12px;
+  margin-top: 12px;
 }
 
 .batch-progress {
-  margin-top: 9px;
-  padding: 9px 10px 8px;
-  border-radius: 8px;
-  background: var(--panel-bg);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.07), var(--shadow-soft);
+  margin-top: 12px;
+  padding: 12px 16px;
 }
 
 .batch-progress[hidden] {
@@ -551,9 +747,9 @@ input[type="radio"]:checked:disabled {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 7px;
-  color: #303033;
-  font-size: 12px;
-  font-weight: 500;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .progress-actions {
@@ -562,52 +758,44 @@ input[type="radio"]:checked:disabled {
   gap: 8px;
 }
 
-.cancel-button {
-  min-height: 23px;
-  padding: 0 9px;
-  color: #9d2929;
-  background: #f7e9e9;
-}
-
 #progress-count {
-  color: var(--muted);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   font-weight: 400;
+}
+
+/* 진행 막대는 알약 모양이 아니라 2px 모서리 */
+progress,
+progress::-webkit-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--control-alt-bg);
 }
 
 progress {
   display: block;
   width: 100%;
-  height: 6px;
   overflow: hidden;
   border: 0;
-  border-radius: 999px;
-  background: #dddddf;
-}
-
-progress::-webkit-progress-bar {
-  border-radius: 999px;
-  background: #dddddf;
 }
 
 progress::-webkit-progress-value {
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--accent);
 }
 
 #progress-detail {
   overflow: hidden;
   margin-top: 7px;
-  color: var(--muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .result-box {
   display: none;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider);
 }
 
 .result-box.visible {
@@ -619,34 +807,19 @@ progress::-webkit-progress-value {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 7px;
-}
-
-.result-head h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
+  margin-bottom: 8px;
 }
 
 .selection-controls {
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 6px;
-}
-
-.selection-controls button {
-  min-height: 23px;
-  padding: 0 8px;
-  font-size: 11px;
+  gap: 8px;
 }
 
 .show-more-button {
   display: block;
-  margin: 7px auto 0;
-  min-height: 24px;
-  padding: 0 10px;
-  font-size: 11px;
+  margin: 8px auto 0;
 }
 
 .show-more-button[hidden] {
@@ -654,40 +827,36 @@ progress::-webkit-progress-value {
 }
 
 .logs {
-  overflow: hidden;
   margin: 0;
   padding: 0;
-  border-radius: 8px;
-  background: var(--panel-bg);
   list-style: none;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.07), var(--shadow-soft);
 }
 
 .logs li {
-  padding: 8px 10px;
-  color: #3a3a3c;
-  font-size: 13px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
   line-height: 1.4;
 }
 
 .logs li + li {
-  border-top: 1px solid var(--line-soft);
+  border-top: 1px solid var(--divider);
 }
 
 .target-row {
   padding: 0 !important;
 }
 
+.target-row:hover {
+  background: var(--subtle-hover);
+}
+
 .target-check {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 10px 12px;
   cursor: pointer;
-}
-
-.target-check input {
-  margin-top: 2px;
 }
 
 .target-description {
@@ -706,14 +875,14 @@ progress::-webkit-progress-value {
 
 .target-parent {
   margin-top: 3px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .log-row {
   display: grid;
-  grid-template-columns: 108px 72px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 120px 76px minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
   min-width: 0;
   white-space: nowrap;
@@ -728,17 +897,18 @@ progress::-webkit-progress-value {
 }
 
 .log-time {
-  color: var(--muted);
+  color: var(--text-secondary);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .log-message {
-  color: #2f2f31;
-  font-weight: 500;
+  color: var(--text);
+  font-weight: 600;
 }
 
 .log-change {
-  color: #4f4f54;
+  color: var(--text-secondary);
 }
 
 .section-head {
@@ -746,42 +916,31 @@ progress::-webkit-progress-value {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .section-head h2 {
-  margin-bottom: 3px;
-  font-size: 15px;
-  font-weight: 600;
+  margin-bottom: 2px;
 }
 
-.about-details {
-  margin-top: 12px;
-}
-
-.about-details .setting-row {
-  grid-template-columns: 82px minmax(0, 1fr);
-}
-
+.about-note,
 .plain-value {
-  color: #3a3a3c;
+  color: var(--text-secondary);
 }
 
 .plain-link {
+  justify-self: start;
   min-width: 0;
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.plain-link:hover {
+  color: var(--accent-text);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .update-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -803,8 +962,6 @@ progress::-webkit-progress-value {
   display: block;
   overflow: hidden;
   margin-top: 6px;
-  color: var(--muted);
-  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -814,16 +971,12 @@ progress::-webkit-progress-value {
     min-width: 0;
   }
 
-  .tabs {
-    gap: 4px;
-  }
-
   .tab {
-    width: 58px;
+    width: 64px;
   }
 
   .tab-panel {
-    padding: 16px 12px 20px;
+    padding: 20px 16px 24px;
   }
 
   .folder-main {
@@ -836,731 +989,40 @@ progress::-webkit-progress-value {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Windows: 컴피 공용 디자인 기준 2판 (comfy-software-design v2.0)
-   재료는 바닥·얹히는 면·단추 셋. 층은 1px 선으로 가르고, 강조색은 #374151 고정.
-   밝게·어둡게만 Windows를 따른다. main.js가 Windows에서 <html>에 platform-windows를 단다.
+   맥: 같은 기준을 조금 부드럽게.
+   모서리를 키우고, 단추 아래 진한 줄을 없애고, 카드 사이를 1px 넓히고,
+   호버 색이 바로 바뀌지 않고 짧게 번지게 한다.
    ───────────────────────────────────────────────────────────── */
 
-@font-face {
-  font-family: "Pretendard";
-  src: url("./fonts/Pretendard-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-display: block;
-}
-
-@font-face {
-  font-family: "Pretendard";
-  src: url("./fonts/Pretendard-SemiBold.woff2") format("woff2");
-  font-weight: 600;
-  font-display: block;
-}
-
-.platform-windows {
-  --w-app-bg: #fafafa;
-  --w-layer-bg: #ffffff;
-  --w-card-bg: #ffffff;
-  --w-control-bg: #ffffff;
-  --w-control-bg-hover: #f5f5f5;
-  --w-control-bg-pressed: #ededed;
-  --w-control-bg-disabled: #f7f7f7;
-  --w-control-alt-bg: #f0f0f0;
-  --w-subtle-hover: rgba(0, 0, 0, 0.051);
-  --w-subtle-pressed: rgba(0, 0, 0, 0.031);
-  --w-card-stroke: #e6e6e6;
-  --w-control-stroke: #e0e0e0;
-  --w-control-stroke-bottom: #cbcbcb;
-  --w-control-stroke-strong: #8a8a8a;
-  --w-divider: #ebebeb;
-  --w-focus: #374151;
-  --w-text: #1f2937;
-  --w-text-secondary: #5b6472;
-  --w-text-tertiary: #8c939d;
-  --w-text-disabled: #adb2b9;
-  --w-text-on-accent: #ffffff;
-  --w-danger: #c0392f;
-  --w-success: #157347;
-  --w-accent: #374151;
-  --w-accent-hover: #4b5563;
-  --w-accent-pressed: #29323f;
-  --w-accent-text: #374151;
-  /* 드롭다운 화살표(Phosphor caret-down)는 배경 그림이라 글자색을 못 받아 색을 직접 넣는다. */
-  --w-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%235b6472'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
-  color-scheme: light;
-  color: var(--w-text);
-  background: var(--w-app-bg);
-  font-family: "Pretendard", "Malgun Gothic", sans-serif;
-  font-size: 14px;
+.platform-mac {
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-check: 5px;
+  --card-gap: 4px;
+  --card-stroke: #ebebeb;
+  --control-stroke-bottom: var(--control-stroke);
 }
 
 @media (prefers-color-scheme: dark) {
-  .platform-windows {
-    --w-app-bg: #1a1a1a;
-    --w-layer-bg: #242424;
-    --w-card-bg: #272727;
-    --w-control-bg: #2b2b2b;
-    --w-control-bg-hover: #323232;
-    --w-control-bg-pressed: #383838;
-    --w-control-bg-disabled: #242424;
-    --w-control-alt-bg: #1f1f1f;
-    --w-subtle-hover: rgba(255, 255, 255, 0.078);
-    --w-subtle-pressed: rgba(255, 255, 255, 0.039);
-    --w-card-stroke: #353535;
-    --w-control-stroke: #3b3b3b;
-    --w-control-stroke-bottom: #191919;
-    --w-control-stroke-strong: #989898;
-    --w-divider: #303030;
-    --w-focus: #e4e4e4;
-    --w-text: #f2f2f2;
-    --w-text-secondary: #b4b4b4;
-    --w-text-tertiary: #888888;
-    --w-text-disabled: #666666;
-    --w-danger: #e8827a;
-    --w-success: #6fc28c;
-    --w-accent: #4b5563;
-    --w-accent-hover: #5d6a7b;
-    --w-accent-pressed: #3b4553;
-    --w-accent-text: #aeb9c7;
-    --w-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%23b4b4b4'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
-    color-scheme: dark;
+  .platform-mac {
+    --card-stroke: #313131;
+    --control-stroke-bottom: var(--control-stroke);
   }
 }
 
-.platform-windows body,
-.platform-windows .settings-window {
-  background: var(--w-app-bg);
+.platform-mac button,
+.platform-mac select,
+.platform-mac .tab,
+.platform-mac .folder-row,
+.platform-mac .target-row,
+.platform-mac .control-button {
+  transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
-.platform-windows p,
-.platform-windows .message,
-.platform-windows #progress-detail,
-.platform-windows .progress-caption {
-  color: var(--w-text-secondary);
-  font-size: 12px;
+.platform-mac .setting-row input[type="checkbox"] {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.platform-windows h2 {
-  color: var(--w-text);
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.platform-windows h3,
-.platform-windows .action-row h3,
-.platform-windows .result-head h3 {
-  color: var(--w-text);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* 머리말 띠: 얹히는 면 + 아래 1px 구분선. 선택된 탭은 강조색 막대로 표시한다. */
-.platform-windows .tabs {
-  gap: 4px;
-  min-height: 60px;
-  padding: 6px 28px 0;
-  border-bottom: 1px solid var(--w-divider);
-  background: var(--w-layer-bg);
-  box-shadow: none;
-}
-
-.platform-windows .tab {
-  position: relative;
-  width: 72px;
-  min-width: 0;
-  min-height: 52px;
-  padding: 5px 4px 9px;
-  border: 0;
-  border-radius: 4px;
-  color: var(--w-text-secondary);
-  background: transparent;
-  box-shadow: none;
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-.platform-windows .tab:hover:not(:disabled) {
-  background: var(--w-subtle-hover);
-}
-
-.platform-windows .tab:active:not(:disabled) {
-  background: var(--w-subtle-pressed);
-}
-
-.platform-windows .tab.active {
-  color: var(--w-text);
-  background: transparent;
-  font-weight: 600;
-}
-
-.platform-windows .tab.active::after {
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  width: 16px;
-  height: 3px;
-  margin-left: -8px;
-  border-radius: 2px;
-  background: var(--w-accent);
-  content: "";
-}
-
-.platform-windows .tab-icon {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 4px;
-}
-
-/* Phosphor Regular 한 벌을 쓴다. */
-.platform-windows .icon-gear-six {
-  -webkit-mask-image: url("./icons/regular/gear.svg");
-  mask-image: url("./icons/regular/gear.svg");
-}
-
-.platform-windows .icon-folder-simple {
-  -webkit-mask-image: url("./icons/regular/folder.svg");
-  mask-image: url("./icons/regular/folder.svg");
-}
-
-.platform-windows .icon-clock-counter-clockwise {
-  -webkit-mask-image: url("./icons/regular/clock-counter-clockwise.svg");
-  mask-image: url("./icons/regular/clock-counter-clockwise.svg");
-}
-
-.platform-windows .icon-info {
-  -webkit-mask-image: url("./icons/regular/info.svg");
-  mask-image: url("./icons/regular/info.svg");
-}
-
-.platform-windows .icon-plus {
-  -webkit-mask-image: url("./icons/regular/plus.svg");
-  mask-image: url("./icons/regular/plus.svg");
-}
-
-.platform-windows .icon-minus {
-  -webkit-mask-image: url("./icons/regular/minus.svg");
-  mask-image: url("./icons/regular/minus.svg");
-}
-
-/* 작업 영역: 바닥 위 좌우 28px 여백 */
-.platform-windows .tab-panel {
-  max-width: none;
-  padding: 20px 28px 24px;
-}
-
-.platform-windows .app-header {
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.platform-windows .app-header-icon {
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-.platform-windows .app-header h2 {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-/* 항목 카드: 얹히는 면 + 1px 테두리, 4px 모서리, 3px 간격으로 쌓는다. */
-.platform-windows .metrics {
-  gap: 3px;
-  margin-bottom: 20px;
-}
-
-.platform-windows .metrics div,
-.platform-windows .batch-progress {
-  border: 1px solid var(--w-card-stroke);
-  border-radius: 4px;
-  background: var(--w-card-bg);
-  box-shadow: none;
-}
-
-.platform-windows .metrics div {
-  min-height: 68px;
-}
-
-.platform-windows .metrics span {
-  color: var(--w-text-secondary);
-  font-size: 12px;
-}
-
-.platform-windows .metrics strong {
-  color: var(--w-text);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.platform-windows .settings-group {
-  overflow: visible;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.platform-windows .settings-group .setting-row {
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 16px;
-  min-height: 48px;
-  margin-bottom: 3px;
-  padding: 8px 16px;
-  border: 1px solid var(--w-card-stroke);
-  border-radius: 4px;
-  background: var(--w-card-bg);
-  color: var(--w-text);
-  font-size: 14px;
-}
-
-.platform-windows .settings-group .setting-row > span:first-child {
-  color: var(--w-text);
-}
-
-/* 일반: 이름은 왼쪽, 컨트롤은 오른쪽. 폴더·정보: 값이 같은 자리에서 시작하도록 이름 칸을 고정한다. */
-.platform-windows .general-settings .setting-row {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.platform-windows .folder-settings .setting-row {
-  grid-template-columns: 100px minmax(0, 1fr);
-}
-
-.platform-windows .about-details .setting-row {
-  grid-template-columns: 100px minmax(0, 1fr);
-}
-
-.platform-windows .general-settings select {
-  justify-self: end;
-}
-
-.platform-windows .folder-settings,
-.platform-windows .about-details {
-  margin-top: 20px;
-}
-
-/* 컨트롤은 카드 오른쪽에 붙인다. 글자는 스위치 왼쪽. */
-.platform-windows .row-control {
-  justify-self: end;
-  gap: 10px;
-  color: var(--w-text-secondary);
-}
-
-.platform-windows .row-control > span {
-  order: -1;
-}
-
-/* 켜고 끄기만 하는 줄은 "켬 / 끔"을 적는다. */
-.platform-windows .general-settings .row-control > span {
-  width: 26px;
-  font-size: 0;
-  text-align: right;
-}
-
-.platform-windows .general-settings .row-control > span::before {
-  font-size: 14px;
-  content: "끔";
-}
-
-.platform-windows .general-settings .row-control > input:checked + span::before {
-  content: "켬";
-}
-
-.platform-windows .plain-value {
-  color: var(--w-text-secondary);
-}
-
-.platform-windows .update-control {
-  gap: 12px;
-}
-
-.platform-windows .plain-link {
-  justify-self: start;
-  color: var(--w-accent-text);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* 읽기 전용 경로 칸: 눌린 것처럼 보이는 자리라 control-alt-bg */
-.platform-windows .path-field {
-  min-height: 32px;
-  padding: 5px 10px;
-  border: 1px solid var(--w-control-stroke);
-  border-radius: 4px;
-  background: var(--w-control-alt-bg);
-  box-shadow: none;
-  color: var(--w-text-secondary);
-  line-height: 20px;
-}
-
-/* 단추: 흰 면 + 1px 선, 아래 한 줄만 진하다. 누르면 그 줄이 사라진다. */
-.platform-windows button,
-.platform-windows select {
-  min-height: 32px;
-  border: 1px solid var(--w-control-stroke);
-  border-bottom-color: var(--w-control-stroke-bottom);
-  border-radius: 4px;
-  background-color: var(--w-control-bg);
-  box-shadow: none;
-  color: var(--w-text);
-  font-size: 14px;
-}
-
-.platform-windows button {
-  min-width: 80px;
-  padding: 0 12px 1px;
-}
-
-.platform-windows button:hover:not(:disabled),
-.platform-windows select:hover:not(:disabled) {
-  background-color: var(--w-control-bg-hover);
-}
-
-.platform-windows button:active:not(:disabled) {
-  border-bottom-color: var(--w-control-stroke);
-  background-color: var(--w-control-bg-pressed);
-}
-
-.platform-windows button:disabled,
-.platform-windows select:disabled {
-  border-color: var(--w-control-stroke);
-  background-color: var(--w-control-bg-disabled);
-  box-shadow: none;
-  color: var(--w-text-disabled);
-}
-
-.platform-windows button:focus-visible,
-.platform-windows select:focus-visible,
-.platform-windows input:focus-visible,
-.platform-windows .plain-link:focus-visible {
-  outline: 2px solid var(--w-focus);
-  outline-offset: 1px;
-}
-
-/* 주 동작 단추: 폴더 탭의 "시작". 검사 결과가 있으면 위쪽 "시작"은 숨겨져 화면에 하나만 있다. */
-.platform-windows #scan-folder:not(:disabled),
-.platform-windows #normalize-folder:not(:disabled) {
-  border-color: var(--w-accent);
-  background-color: var(--w-accent);
-  color: var(--w-text-on-accent);
-}
-
-.platform-windows #scan-folder:hover:not(:disabled),
-.platform-windows #normalize-folder:hover:not(:disabled) {
-  border-color: var(--w-accent-hover);
-  background-color: var(--w-accent-hover);
-}
-
-.platform-windows #scan-folder:active:not(:disabled),
-.platform-windows #normalize-folder:active:not(:disabled) {
-  border-color: var(--w-accent-pressed);
-  background-color: var(--w-accent-pressed);
-}
-
-.platform-windows .cancel-button {
-  min-width: 0;
-  min-height: 28px;
-  color: var(--w-danger);
-  background-color: var(--w-control-bg);
-}
-
-.platform-windows .selection-controls {
-  gap: 8px;
-}
-
-.platform-windows .selection-controls button,
-.platform-windows .show-more-button {
-  min-height: 32px;
-  padding: 0 12px 1px;
-  font-size: 14px;
-}
-
-.platform-windows select {
-  width: 136px;
-  padding: 0 32px 1px 11px;
-  appearance: none;
-  background-image: var(--w-caret);
-  background-position: right 10px center;
-  background-repeat: no-repeat;
-  background-size: 11px 11px;
-}
-
-/* 토글 스위치 40x20: 꺼짐은 눌린 면 + 진한 테두리, 켜짐은 강조색 */
-.platform-windows .setting-row input[type="checkbox"] {
-  width: 40px;
-  height: 20px;
-  border: 1px solid var(--w-control-stroke-strong);
-  border-radius: 10px;
-  background: var(--w-control-alt-bg);
-  box-shadow: none;
-}
-
-.platform-windows .setting-row input[type="checkbox"]::after {
-  position: absolute;
-  left: 3px;
-  top: 3px;
-  width: 12px;
-  height: 12px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--w-text-secondary);
-  content: "";
-  transform: none;
-  transition: left 0.1s ease, width 0.1s ease, height 0.1s ease, top 0.1s ease;
-}
-
-.platform-windows .setting-row input[type="checkbox"]:hover:not(:disabled)::after {
-  left: 2px;
-  top: 2px;
-  width: 14px;
-  height: 14px;
-}
-
-.platform-windows .setting-row input[type="checkbox"]:checked {
-  border-color: var(--w-accent);
-  background: var(--w-accent);
-}
-
-.platform-windows .setting-row input[type="checkbox"]:checked::after {
-  left: 23px;
-  background: var(--w-text-on-accent);
-}
-
-.platform-windows .setting-row input[type="checkbox"]:checked:hover:not(:disabled)::after {
-  left: 22px;
-}
-
-.platform-windows .setting-row input[type="checkbox"]:disabled {
-  border-color: var(--w-text-disabled);
-  background: var(--w-control-bg-disabled);
-}
-
-.platform-windows .setting-row input[type="checkbox"]:disabled::after {
-  background: var(--w-text-disabled);
-}
-
-.platform-windows .setting-row input[type="checkbox"]:checked:disabled {
-  border-color: var(--w-text-disabled);
-  background: var(--w-text-disabled);
-}
-
-.platform-windows .setting-row input[type="checkbox"]:checked:disabled::after {
-  background: var(--w-control-bg-disabled);
-}
-
-/* 여러 개 중에서 고르는 자리(검사 결과)만 확인란 20x20 */
-.platform-windows .target-check input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  margin-top: 0;
-  border: 1px solid var(--w-control-stroke-strong);
-  border-radius: 3px;
-  background: var(--w-control-alt-bg);
-  box-shadow: none;
-}
-
-.platform-windows .target-check input[type="checkbox"]:checked {
-  border-color: var(--w-accent);
-  background: var(--w-accent);
-}
-
-.platform-windows .target-check input[type="checkbox"]:checked::after {
-  left: 3px;
-  top: 3px;
-  width: 12px;
-  height: 12px;
-  border: 0;
-  background: var(--w-text-on-accent);
-  transform: none;
-  -webkit-mask: url("./icons/regular/check.svg") center / contain no-repeat;
-  mask: url("./icons/regular/check.svg") center / contain no-repeat;
-}
-
-/* 목록 우물: 얹히는 면 + 1px 테두리. 줄은 칠하지 않고 호버·선택만 표시한다. */
-.platform-windows .folder-table,
-.platform-windows .logs {
-  border: 1px solid var(--w-card-stroke);
-  border-radius: 4px;
-  background: var(--w-layer-bg);
-  box-shadow: none;
-}
-
-.platform-windows .folder-list li,
-.platform-windows .folder-list li:nth-child(n) {
-  min-height: 36px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--w-divider);
-  background: transparent;
-  color: var(--w-text);
-  font-size: 14px;
-}
-
-.platform-windows .folder-row:hover {
-  background: var(--w-subtle-hover) !important;
-}
-
-.platform-windows .folder-row.is-selected {
-  background: var(--w-subtle-hover) !important;
-  box-shadow: inset 3px 0 0 var(--w-accent);
-}
-
-.platform-windows .folder-row.is-disabled {
-  color: var(--w-text-tertiary);
-}
-
-.platform-windows .folder-name {
-  font-weight: 600;
-}
-
-.platform-windows .folder-meta {
-  color: var(--w-text-secondary);
-  font-size: 12px;
-}
-
-.platform-windows .folder-badges span,
-.platform-windows .folder-row.is-enabled .folder-badges span:first-child {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--w-control-alt-bg);
-  color: var(--w-text-secondary);
-  font-size: 11px;
-}
-
-.platform-windows .folder-row.is-enabled .folder-badges span:first-child {
-  color: var(--w-success);
-}
-
-.platform-windows .table-controls {
-  height: 28px;
-  border-top: 0;
-  background: var(--w-layer-bg);
-}
-
-.platform-windows .control-button {
-  width: 32px;
-  min-width: 0;
-  min-height: 28px;
-  padding: 0;
-  border: 0;
-  border-right: 1px solid var(--w-divider);
-  border-radius: 0;
-  background: transparent;
-  color: var(--w-text-secondary);
-}
-
-.platform-windows .control-button:hover:not(:disabled) {
-  background: var(--w-subtle-hover);
-}
-
-.platform-windows .control-button:active:not(:disabled) {
-  background: var(--w-subtle-pressed);
-}
-
-.platform-windows .control-button:disabled {
-  background: transparent;
-  color: var(--w-text-disabled);
-}
-
-.platform-windows .control-button .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.platform-windows .action-row {
-  margin-top: 12px;
-}
-
-.platform-windows .message {
-  margin-top: 12px;
-}
-
-.platform-windows .batch-progress {
-  margin-top: 12px;
-  padding: 12px 16px;
-}
-
-.platform-windows .progress-head {
-  color: var(--w-text);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.platform-windows #progress-count {
-  color: var(--w-text-secondary);
-}
-
-/* 진행 막대는 알약 모양이 아니라 2px 모서리 */
-.platform-windows progress,
-.platform-windows progress::-webkit-progress-bar {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--w-control-alt-bg);
-}
-
-.platform-windows progress::-webkit-progress-value {
-  border-radius: 2px;
-  background: var(--w-accent);
-}
-
-.platform-windows .result-box {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--w-divider);
-}
-
-.platform-windows .result-head {
-  margin-bottom: 8px;
-}
-
-.platform-windows .logs li {
-  padding: 10px 12px;
-  color: var(--w-text);
-  font-size: 14px;
-}
-
-.platform-windows .logs li + li {
-  border-top: 1px solid var(--w-divider);
-}
-
-.platform-windows .target-check {
-  gap: 10px;
-  padding: 10px 12px;
-}
-
-.platform-windows .target-row:hover {
-  background: var(--w-subtle-hover);
-}
-
-.platform-windows .target-parent {
-  color: var(--w-text-secondary);
-  font-size: 12px;
-}
-
-.platform-windows .log-row {
-  grid-template-columns: 120px 76px minmax(0, 1fr);
-  gap: 12px;
-}
-
-.platform-windows .log-time {
-  color: var(--w-text-secondary);
-  font-size: 12px;
-}
-
-.platform-windows .log-message {
-  color: var(--w-text);
-  font-weight: 600;
-}
-
-.platform-windows .log-change {
-  color: var(--w-text-secondary);
-}
-
-.platform-windows .section-head {
-  margin-bottom: 16px;
-}
-
-.platform-windows .section-head h2 {
-  margin-bottom: 2px;
-  font-size: 20px;
-}
-
-.platform-windows .about-note {
-  color: var(--w-text-secondary);
+.platform-mac .setting-row input[type="checkbox"]::after {
+  transition: left 0.15s ease, width 0.15s ease, height 0.15s ease, top 0.15s ease;
 }
