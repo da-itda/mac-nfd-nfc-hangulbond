@@ -32,7 +32,17 @@
       "icons/icon.icns",
       "icons/icon.ico",
       "icons/icon.png"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "Korean"
+        ],
+        "displayLanguageSelector": false,
+        "installerHooks": "windows/installer-hooks.nsh"
+      }
+    }
   },
   "plugins": {
     "updater": {
