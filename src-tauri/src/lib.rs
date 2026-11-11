@@ -618,6 +618,23 @@ fn apply_windows_first_run_defaults(app: &AppHandle, settings: &mut AppSettings)
     settings.launch_at_login = sync_launch_at_login(app, true).is_ok();
 }
 
+// Windows 작업 표시줄은 아이콘 색을 바꿔 주지 않는다. 작업 표시줄 테마(밝게·어둡게)에 맞는 아이콘을 고른다.
+// 값이 없으면(예전 Windows 10 기본값) 어두운 작업 표시줄로 본다.
+#[cfg(windows)]
+fn windows_tray_icon_bytes() -> &'static [u8] {
+    use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
+    let light_taskbar = RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        .and_then(|key| key.get_value::<u32, _>("SystemUsesLightTheme"))
+        .is_ok_and(|value| value != 0);
+    if light_taskbar {
+        include_bytes!("../icons/tray-template.png")
+    } else {
+        include_bytes!("../icons/tray-white.png")
+    }
+}
+
 fn emit_normalize_progress(app: &AppHandle, scope: &str, progress: NormalizeProgress) {
     let _ = app.emit(
         "normalize-progress",
@@ -738,7 +755,9 @@ pub fn run() {
             // macOS는 템플릿 아이콘으로 메뉴바 밝기에 맞춰 시스템이 색을 칠한다.
             #[cfg(target_os = "macos")]
             let tray_icon_bytes = include_bytes!("../icons/tray-template.png").as_slice();
-            #[cfg(not(target_os = "macos"))]
+            #[cfg(windows)]
+            let tray_icon_bytes = windows_tray_icon_bytes();
+            #[cfg(all(not(target_os = "macos"), not(windows)))]
             let tray_icon_bytes = include_bytes!("../icons/tray.png").as_slice();
             let tray_icon = Image::from_bytes(tray_icon_bytes)?;
 
@@ -840,11 +859,21 @@ pub fn run() {
             open_extension_store,
             restart_app
         ])
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            #[cfg(windows)]
+            WindowEvent::ThemeChanged(_) => {
+                if let (Some(tray), Ok(icon)) = (
+                    window.app_handle().tray_by_id("main-tray"),
+                    Image::from_bytes(windows_tray_icon_bytes()),
+                ) {
+                    let _ = tray.set_icon(Some(icon));
+                }
+            }
+            _ => {}
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
