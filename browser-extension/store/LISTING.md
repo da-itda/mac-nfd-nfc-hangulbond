@@ -11,6 +11,7 @@ Chrome 웹 스토어 개발자 대시보드(https://chrome.google.com/webstore/d
 - 2026-10-26: 심사 제출 (공개, 전체 지역, 검토 통과 후 자동 게시). 제출 시 "광범위한 호스트 권한으로 검토가 길어질 수 있음" 안내가 나옴. 업로드 사이트를 미리 알 수 없어 http·https 전체가 필요하다고 판단해 그대로 제출
 - 2026-10-29: 0.1.1 공개 확인. 업데이트 서버 302, 공개 패키지가 `browser-extension/extension`과 같음 (웹 스토어가 넣는 `update_url`만 다름)
 - 2026-10-29: 0.2.0 준비 (선택 기능 `다운로드 파일명 정리`, 선택 권한 `downloads`). 아직 제출하지 않음. 제출 전에 개인정보처리방침 변경을 저장소에 푸시해야 한다
+- 2026-11-11: 0.2.0 실제 화면 검증 완료 (Windows Chrome·Edge 157, 맥 Chrome 157). 다운로드 기능 스크린샷 추가
 
 ## 패키지
 
@@ -26,7 +27,7 @@ Chrome 웹 스토어 개발자 대시보드(https://chrome.google.com/webstore/d
 | 카테고리 | 도구 (Tools) |
 | 언어 | 한국어 (영어 번역 포함) |
 | 아이콘 | `browser-extension/extension/icons/icon-128.png` |
-| 스크린샷 (1280×800) | `browser-extension/store/screenshot.png` |
+| 스크린샷 (1280×800) | `browser-extension/store/screenshot.png`, `browser-extension/store/screenshot-download.png` (0.2.0 추가) |
 | 작은 프로모션 타일 (440×280) | `browser-extension/store/promo.png` |
 | 홈페이지 | https://github.com/da-itda/mac-nfd-nfc-hangulbond |
 | 지원 | https://github.com/da-itda/mac-nfd-nfc-hangulbond/issues |
