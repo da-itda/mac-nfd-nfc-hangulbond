@@ -680,7 +680,18 @@ fn normalize_saved_folders_impl(app: &AppHandle) -> Result<Vec<RenameResult>, St
 }
 
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // Windows는 이미 실행 중일 때 시작 메뉴에서 다시 열면 새 프로세스가 뜬다. 기존 설정 창을 보여 준다.
+    // (macOS는 시스템이 실행 중인 앱을 앞으로 가져온다.)
+    #[cfg(windows)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+    }));
+    builder
         .manage(AppState {
             watch_service: Mutex::new(WatchService::new()),
             instance_lock: Mutex::new(None),
