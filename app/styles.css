@@ -966,7 +966,8 @@ progress::-webkit-progress-value {
   white-space: nowrap;
 }
 
-@media (max-width: 560px) {
+/* 기본 창 너비가 560px이다. 바깥 여백 28px은 창을 그보다 좁혔을 때만 줄인다. */
+@media (max-width: 540px) {
   body {
     min-width: 0;
   }
@@ -978,7 +979,10 @@ progress::-webkit-progress-value {
   .tab-panel {
     padding: 20px 16px 24px;
   }
+}
 
+/* 기본 너비에서는 폴더 배지를 숨긴다 (이전과 같음). */
+@media (max-width: 560px) {
   .folder-main {
     grid-template-columns: minmax(86px, 118px) minmax(0, 1fr);
   }
