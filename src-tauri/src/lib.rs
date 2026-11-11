@@ -34,6 +34,7 @@ use watcher::{WatchService, WatchStatus};
 const LEGACY_IDENTIFIERS: &[&str] = &["com.codex.hangul-nfc-normalizer", "com.hangulbond.app"];
 const AUTOSTART_ENTRY_NAME: &str = "HangulBond";
 const WEBSITE_URL: &str = "https://github.com/da-itda/mac-nfd-nfc-hangulbond";
+#[cfg(target_os = "macos")]
 const LEGACY_AUTOSTART_MARKERS: &[&str] = &[
     "한글본드",
     "한글 파일명 정리기",
