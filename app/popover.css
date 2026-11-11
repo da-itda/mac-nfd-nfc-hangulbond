@@ -5,7 +5,8 @@
   box-sizing: border-box;
 }
 
-html,
+/* tokens.css의 :root 배경이 창을 사각형으로 칠하지 않도록 :root까지 투명하게 한다. */
+:root,
 body {
   margin: 0;
   background: transparent;
