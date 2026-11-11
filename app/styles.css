@@ -834,3 +834,733 @@ progress::-webkit-progress-value {
     display: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Windows: 컴피 공용 디자인 기준 2판 (comfy-software-design v2.0)
+   재료는 바닥·얹히는 면·단추 셋. 층은 1px 선으로 가르고, 강조색은 #374151 고정.
+   밝게·어둡게만 Windows를 따른다. main.js가 Windows에서 <html>에 platform-windows를 단다.
+   ───────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("./fonts/Pretendard-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("./fonts/Pretendard-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+.platform-windows {
+  --w-app-bg: #fafafa;
+  --w-layer-bg: #ffffff;
+  --w-card-bg: #ffffff;
+  --w-control-bg: #ffffff;
+  --w-control-bg-hover: #f5f5f5;
+  --w-control-bg-pressed: #ededed;
+  --w-control-bg-disabled: #f7f7f7;
+  --w-control-alt-bg: #f0f0f0;
+  --w-subtle-hover: rgba(0, 0, 0, 0.051);
+  --w-subtle-pressed: rgba(0, 0, 0, 0.031);
+  --w-card-stroke: #e6e6e6;
+  --w-control-stroke: #e0e0e0;
+  --w-control-stroke-bottom: #cbcbcb;
+  --w-control-stroke-strong: #8a8a8a;
+  --w-divider: #ebebeb;
+  --w-focus: #374151;
+  --w-text: #1f2937;
+  --w-text-secondary: #5b6472;
+  --w-text-tertiary: #8c939d;
+  --w-text-disabled: #adb2b9;
+  --w-text-on-accent: #ffffff;
+  --w-danger: #c0392f;
+  --w-success: #157347;
+  --w-accent: #374151;
+  --w-accent-hover: #4b5563;
+  --w-accent-pressed: #29323f;
+  --w-accent-text: #374151;
+  /* 드롭다운 화살표(Phosphor caret-down)는 배경 그림이라 글자색을 못 받아 색을 직접 넣는다. */
+  --w-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%235b6472'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  color-scheme: light;
+  color: var(--w-text);
+  background: var(--w-app-bg);
+  font-family: "Pretendard", "Malgun Gothic", sans-serif;
+  font-size: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .platform-windows {
+    --w-app-bg: #1a1a1a;
+    --w-layer-bg: #242424;
+    --w-card-bg: #272727;
+    --w-control-bg: #2b2b2b;
+    --w-control-bg-hover: #323232;
+    --w-control-bg-pressed: #383838;
+    --w-control-bg-disabled: #242424;
+    --w-control-alt-bg: #1f1f1f;
+    --w-subtle-hover: rgba(255, 255, 255, 0.078);
+    --w-subtle-pressed: rgba(255, 255, 255, 0.039);
+    --w-card-stroke: #353535;
+    --w-control-stroke: #3b3b3b;
+    --w-control-stroke-bottom: #191919;
+    --w-control-stroke-strong: #989898;
+    --w-divider: #303030;
+    --w-focus: #e4e4e4;
+    --w-text: #f2f2f2;
+    --w-text-secondary: #b4b4b4;
+    --w-text-tertiary: #888888;
+    --w-text-disabled: #666666;
+    --w-danger: #e8827a;
+    --w-success: #6fc28c;
+    --w-accent: #4b5563;
+    --w-accent-hover: #5d6a7b;
+    --w-accent-pressed: #3b4553;
+    --w-accent-text: #aeb9c7;
+    --w-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%23b4b4b4'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+}
+
+.platform-windows body,
+.platform-windows .settings-window {
+  background: var(--w-app-bg);
+}
+
+.platform-windows p,
+.platform-windows .message,
+.platform-windows #progress-detail,
+.platform-windows .progress-caption {
+  color: var(--w-text-secondary);
+  font-size: 12px;
+}
+
+.platform-windows h2 {
+  color: var(--w-text);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.platform-windows h3,
+.platform-windows .action-row h3,
+.platform-windows .result-head h3 {
+  color: var(--w-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 머리말 띠: 얹히는 면 + 아래 1px 구분선. 선택된 탭은 강조색 막대로 표시한다. */
+.platform-windows .tabs {
+  gap: 4px;
+  min-height: 60px;
+  padding: 6px 28px 0;
+  border-bottom: 1px solid var(--w-divider);
+  background: var(--w-layer-bg);
+  box-shadow: none;
+}
+
+.platform-windows .tab {
+  position: relative;
+  width: 72px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 5px 4px 9px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--w-text-secondary);
+  background: transparent;
+  box-shadow: none;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.platform-windows .tab:hover:not(:disabled) {
+  background: var(--w-subtle-hover);
+}
+
+.platform-windows .tab:active:not(:disabled) {
+  background: var(--w-subtle-pressed);
+}
+
+.platform-windows .tab.active {
+  color: var(--w-text);
+  background: transparent;
+  font-weight: 600;
+}
+
+.platform-windows .tab.active::after {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 16px;
+  height: 3px;
+  margin-left: -8px;
+  border-radius: 2px;
+  background: var(--w-accent);
+  content: "";
+}
+
+.platform-windows .tab-icon {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+}
+
+/* Phosphor Regular 한 벌을 쓴다. */
+.platform-windows .icon-gear-six {
+  -webkit-mask-image: url("./icons/regular/gear.svg");
+  mask-image: url("./icons/regular/gear.svg");
+}
+
+.platform-windows .icon-folder-simple {
+  -webkit-mask-image: url("./icons/regular/folder.svg");
+  mask-image: url("./icons/regular/folder.svg");
+}
+
+.platform-windows .icon-clock-counter-clockwise {
+  -webkit-mask-image: url("./icons/regular/clock-counter-clockwise.svg");
+  mask-image: url("./icons/regular/clock-counter-clockwise.svg");
+}
+
+.platform-windows .icon-info {
+  -webkit-mask-image: url("./icons/regular/info.svg");
+  mask-image: url("./icons/regular/info.svg");
+}
+
+.platform-windows .icon-plus {
+  -webkit-mask-image: url("./icons/regular/plus.svg");
+  mask-image: url("./icons/regular/plus.svg");
+}
+
+.platform-windows .icon-minus {
+  -webkit-mask-image: url("./icons/regular/minus.svg");
+  mask-image: url("./icons/regular/minus.svg");
+}
+
+/* 작업 영역: 바닥 위 좌우 28px 여백 */
+.platform-windows .tab-panel {
+  max-width: none;
+  padding: 20px 28px 24px;
+}
+
+.platform-windows .app-header {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.platform-windows .app-header-icon {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.platform-windows .app-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* 항목 카드: 얹히는 면 + 1px 테두리, 4px 모서리, 3px 간격으로 쌓는다. */
+.platform-windows .metrics {
+  gap: 3px;
+  margin-bottom: 20px;
+}
+
+.platform-windows .metrics div,
+.platform-windows .batch-progress {
+  border: 1px solid var(--w-card-stroke);
+  border-radius: 4px;
+  background: var(--w-card-bg);
+  box-shadow: none;
+}
+
+.platform-windows .metrics div {
+  min-height: 68px;
+}
+
+.platform-windows .metrics span {
+  color: var(--w-text-secondary);
+  font-size: 12px;
+}
+
+.platform-windows .metrics strong {
+  color: var(--w-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.platform-windows .settings-group {
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.platform-windows .settings-group .setting-row {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 16px;
+  min-height: 48px;
+  margin-bottom: 3px;
+  padding: 8px 16px;
+  border: 1px solid var(--w-card-stroke);
+  border-radius: 4px;
+  background: var(--w-card-bg);
+  color: var(--w-text);
+  font-size: 14px;
+}
+
+.platform-windows .settings-group .setting-row > span:first-child {
+  color: var(--w-text);
+}
+
+/* 일반: 이름은 왼쪽, 컨트롤은 오른쪽. 폴더·정보: 값이 같은 자리에서 시작하도록 이름 칸을 고정한다. */
+.platform-windows .general-settings .setting-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.platform-windows .folder-settings .setting-row {
+  grid-template-columns: 100px minmax(0, 1fr);
+}
+
+.platform-windows .about-details .setting-row {
+  grid-template-columns: 100px minmax(0, 1fr);
+}
+
+.platform-windows .general-settings select {
+  justify-self: end;
+}
+
+.platform-windows .folder-settings,
+.platform-windows .about-details {
+  margin-top: 20px;
+}
+
+/* 컨트롤은 카드 오른쪽에 붙인다. 글자는 스위치 왼쪽. */
+.platform-windows .row-control {
+  justify-self: end;
+  gap: 10px;
+  color: var(--w-text-secondary);
+}
+
+.platform-windows .row-control > span {
+  order: -1;
+}
+
+/* 켜고 끄기만 하는 줄은 "켬 / 끔"을 적는다. */
+.platform-windows .general-settings .row-control > span {
+  width: 26px;
+  font-size: 0;
+  text-align: right;
+}
+
+.platform-windows .general-settings .row-control > span::before {
+  font-size: 14px;
+  content: "끔";
+}
+
+.platform-windows .general-settings .row-control > input:checked + span::before {
+  content: "켬";
+}
+
+.platform-windows .plain-value {
+  color: var(--w-text-secondary);
+}
+
+.platform-windows .update-control {
+  gap: 12px;
+}
+
+.platform-windows .plain-link {
+  justify-self: start;
+  color: var(--w-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 읽기 전용 경로 칸: 눌린 것처럼 보이는 자리라 control-alt-bg */
+.platform-windows .path-field {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--w-control-stroke);
+  border-radius: 4px;
+  background: var(--w-control-alt-bg);
+  box-shadow: none;
+  color: var(--w-text-secondary);
+  line-height: 20px;
+}
+
+/* 단추: 흰 면 + 1px 선, 아래 한 줄만 진하다. 누르면 그 줄이 사라진다. */
+.platform-windows button,
+.platform-windows select {
+  min-height: 32px;
+  border: 1px solid var(--w-control-stroke);
+  border-bottom-color: var(--w-control-stroke-bottom);
+  border-radius: 4px;
+  background-color: var(--w-control-bg);
+  box-shadow: none;
+  color: var(--w-text);
+  font-size: 14px;
+}
+
+.platform-windows button {
+  min-width: 80px;
+  padding: 0 12px 1px;
+}
+
+.platform-windows button:hover:not(:disabled),
+.platform-windows select:hover:not(:disabled) {
+  background-color: var(--w-control-bg-hover);
+}
+
+.platform-windows button:active:not(:disabled) {
+  border-bottom-color: var(--w-control-stroke);
+  background-color: var(--w-control-bg-pressed);
+}
+
+.platform-windows button:disabled,
+.platform-windows select:disabled {
+  border-color: var(--w-control-stroke);
+  background-color: var(--w-control-bg-disabled);
+  box-shadow: none;
+  color: var(--w-text-disabled);
+}
+
+.platform-windows button:focus-visible,
+.platform-windows select:focus-visible,
+.platform-windows input:focus-visible,
+.platform-windows .plain-link:focus-visible {
+  outline: 2px solid var(--w-focus);
+  outline-offset: 1px;
+}
+
+/* 주 동작 단추: 폴더 탭의 "시작". 검사 결과가 있으면 위쪽 "시작"은 숨겨져 화면에 하나만 있다. */
+.platform-windows #scan-folder:not(:disabled),
+.platform-windows #normalize-folder:not(:disabled) {
+  border-color: var(--w-accent);
+  background-color: var(--w-accent);
+  color: var(--w-text-on-accent);
+}
+
+.platform-windows #scan-folder:hover:not(:disabled),
+.platform-windows #normalize-folder:hover:not(:disabled) {
+  border-color: var(--w-accent-hover);
+  background-color: var(--w-accent-hover);
+}
+
+.platform-windows #scan-folder:active:not(:disabled),
+.platform-windows #normalize-folder:active:not(:disabled) {
+  border-color: var(--w-accent-pressed);
+  background-color: var(--w-accent-pressed);
+}
+
+.platform-windows .cancel-button {
+  min-width: 0;
+  min-height: 28px;
+  color: var(--w-danger);
+  background-color: var(--w-control-bg);
+}
+
+.platform-windows .selection-controls {
+  gap: 8px;
+}
+
+.platform-windows .selection-controls button,
+.platform-windows .show-more-button {
+  min-height: 32px;
+  padding: 0 12px 1px;
+  font-size: 14px;
+}
+
+.platform-windows select {
+  width: 136px;
+  padding: 0 32px 1px 11px;
+  appearance: none;
+  background-image: var(--w-caret);
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-size: 11px 11px;
+}
+
+/* 토글 스위치 40x20: 꺼짐은 눌린 면 + 진한 테두리, 켜짐은 강조색 */
+.platform-windows .setting-row input[type="checkbox"] {
+  width: 40px;
+  height: 20px;
+  border: 1px solid var(--w-control-stroke-strong);
+  border-radius: 10px;
+  background: var(--w-control-alt-bg);
+  box-shadow: none;
+}
+
+.platform-windows .setting-row input[type="checkbox"]::after {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--w-text-secondary);
+  content: "";
+  transform: none;
+  transition: left 0.1s ease, width 0.1s ease, height 0.1s ease, top 0.1s ease;
+}
+
+.platform-windows .setting-row input[type="checkbox"]:hover:not(:disabled)::after {
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+}
+
+.platform-windows .setting-row input[type="checkbox"]:checked {
+  border-color: var(--w-accent);
+  background: var(--w-accent);
+}
+
+.platform-windows .setting-row input[type="checkbox"]:checked::after {
+  left: 23px;
+  background: var(--w-text-on-accent);
+}
+
+.platform-windows .setting-row input[type="checkbox"]:checked:hover:not(:disabled)::after {
+  left: 22px;
+}
+
+.platform-windows .setting-row input[type="checkbox"]:disabled {
+  border-color: var(--w-text-disabled);
+  background: var(--w-control-bg-disabled);
+}
+
+.platform-windows .setting-row input[type="checkbox"]:disabled::after {
+  background: var(--w-text-disabled);
+}
+
+.platform-windows .setting-row input[type="checkbox"]:checked:disabled {
+  border-color: var(--w-text-disabled);
+  background: var(--w-text-disabled);
+}
+
+.platform-windows .setting-row input[type="checkbox"]:checked:disabled::after {
+  background: var(--w-control-bg-disabled);
+}
+
+/* 여러 개 중에서 고르는 자리(검사 결과)만 확인란 20x20 */
+.platform-windows .target-check input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 0;
+  border: 1px solid var(--w-control-stroke-strong);
+  border-radius: 3px;
+  background: var(--w-control-alt-bg);
+  box-shadow: none;
+}
+
+.platform-windows .target-check input[type="checkbox"]:checked {
+  border-color: var(--w-accent);
+  background: var(--w-accent);
+}
+
+.platform-windows .target-check input[type="checkbox"]:checked::after {
+  left: 3px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border: 0;
+  background: var(--w-text-on-accent);
+  transform: none;
+  -webkit-mask: url("./icons/regular/check.svg") center / contain no-repeat;
+  mask: url("./icons/regular/check.svg") center / contain no-repeat;
+}
+
+/* 목록 우물: 얹히는 면 + 1px 테두리. 줄은 칠하지 않고 호버·선택만 표시한다. */
+.platform-windows .folder-table,
+.platform-windows .logs {
+  border: 1px solid var(--w-card-stroke);
+  border-radius: 4px;
+  background: var(--w-layer-bg);
+  box-shadow: none;
+}
+
+.platform-windows .folder-list li,
+.platform-windows .folder-list li:nth-child(n) {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--w-divider);
+  background: transparent;
+  color: var(--w-text);
+  font-size: 14px;
+}
+
+.platform-windows .folder-row:hover {
+  background: var(--w-subtle-hover) !important;
+}
+
+.platform-windows .folder-row.is-selected {
+  background: var(--w-subtle-hover) !important;
+  box-shadow: inset 3px 0 0 var(--w-accent);
+}
+
+.platform-windows .folder-row.is-disabled {
+  color: var(--w-text-tertiary);
+}
+
+.platform-windows .folder-name {
+  font-weight: 600;
+}
+
+.platform-windows .folder-meta {
+  color: var(--w-text-secondary);
+  font-size: 12px;
+}
+
+.platform-windows .folder-badges span,
+.platform-windows .folder-row.is-enabled .folder-badges span:first-child {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--w-control-alt-bg);
+  color: var(--w-text-secondary);
+  font-size: 11px;
+}
+
+.platform-windows .folder-row.is-enabled .folder-badges span:first-child {
+  color: var(--w-success);
+}
+
+.platform-windows .table-controls {
+  height: 28px;
+  border-top: 0;
+  background: var(--w-layer-bg);
+}
+
+.platform-windows .control-button {
+  width: 32px;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--w-divider);
+  border-radius: 0;
+  background: transparent;
+  color: var(--w-text-secondary);
+}
+
+.platform-windows .control-button:hover:not(:disabled) {
+  background: var(--w-subtle-hover);
+}
+
+.platform-windows .control-button:active:not(:disabled) {
+  background: var(--w-subtle-pressed);
+}
+
+.platform-windows .control-button:disabled {
+  background: transparent;
+  color: var(--w-text-disabled);
+}
+
+.platform-windows .control-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.platform-windows .action-row {
+  margin-top: 12px;
+}
+
+.platform-windows .message {
+  margin-top: 12px;
+}
+
+.platform-windows .batch-progress {
+  margin-top: 12px;
+  padding: 12px 16px;
+}
+
+.platform-windows .progress-head {
+  color: var(--w-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.platform-windows #progress-count {
+  color: var(--w-text-secondary);
+}
+
+/* 진행 막대는 알약 모양이 아니라 2px 모서리 */
+.platform-windows progress,
+.platform-windows progress::-webkit-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--w-control-alt-bg);
+}
+
+.platform-windows progress::-webkit-progress-value {
+  border-radius: 2px;
+  background: var(--w-accent);
+}
+
+.platform-windows .result-box {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--w-divider);
+}
+
+.platform-windows .result-head {
+  margin-bottom: 8px;
+}
+
+.platform-windows .logs li {
+  padding: 10px 12px;
+  color: var(--w-text);
+  font-size: 14px;
+}
+
+.platform-windows .logs li + li {
+  border-top: 1px solid var(--w-divider);
+}
+
+.platform-windows .target-check {
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.platform-windows .target-row:hover {
+  background: var(--w-subtle-hover);
+}
+
+.platform-windows .target-parent {
+  color: var(--w-text-secondary);
+  font-size: 12px;
+}
+
+.platform-windows .log-row {
+  grid-template-columns: 120px 76px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.platform-windows .log-time {
+  color: var(--w-text-secondary);
+  font-size: 12px;
+}
+
+.platform-windows .log-message {
+  color: var(--w-text);
+  font-weight: 600;
+}
+
+.platform-windows .log-change {
+  color: var(--w-text-secondary);
+}
+
+.platform-windows .section-head {
+  margin-bottom: 16px;
+}
+
+.platform-windows .section-head h2 {
+  margin-bottom: 2px;
+  font-size: 20px;
+}
+
+.platform-windows .about-note {
+  color: var(--w-text-secondary);
+}
