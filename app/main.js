@@ -1050,9 +1050,10 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+// Windows 경로는 역슬래시로 나뉜다.
 function lastPathComponent(path) {
-  const normalized = String(path).replace(/\/+$/, "");
-  const parts = normalized.split("/");
+  const normalized = String(path).replace(/[\\/]+$/, "");
+  const parts = normalized.split(/[\\/]/);
   return parts.at(-1) || normalized;
 }
 
