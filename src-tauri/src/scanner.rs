@@ -517,6 +517,10 @@ fn rename_target(target: &ScanTarget, status: StabilityStatus) -> RenameResult {
         }
     }
 
+    if let Some(result) = remove_identical_duplicate(target) {
+        return result;
+    }
+
     let refreshed = refresh_collision_target(target);
     let final_path = refreshed.parent_path.join(&refreshed.final_name);
 
@@ -545,6 +549,70 @@ fn rename_target(target: &ScanTarget, status: StabilityStatus) -> RenameResult {
             collision: refreshed.collision,
             reason: Some(rename_error_reason(&error)),
         },
+    }
+}
+
+// 정리한 뒤 다른 앱이 같은 파일을 원래(NFD) 이름으로 다시 저장하는 경우가 있다(Windows 텔레그램).
+// NFC 이름의 파일이 이미 있고 내용까지 같으면 `_1` 사본을 만들지 않고 NFD 쪽을 지운다.
+// 내용이 하나라도 다르거나 비교할 수 없으면 None을 돌려 기존처럼 `_1`을 붙인다.
+fn remove_identical_duplicate(target: &ScanTarget) -> Option<RenameResult> {
+    if target.kind != "file" {
+        return None;
+    }
+    let existing_path = target.parent_path.join(&target.normalized_name);
+    if !existing_path.is_file()
+        || paths_refer_to_same_entry(&target.path, &existing_path)
+        || !files_have_same_content(&target.path, &existing_path)
+    {
+        return None;
+    }
+
+    let (status, final_path, reason) = match fs::remove_file(&target.path) {
+        Ok(()) => ("duplicate", Some(existing_path), None),
+        Err(error) => ("failed", None, Some(rename_error_reason(&error))),
+    };
+    Some(RenameResult {
+        status: status.to_string(),
+        kind: target.kind.clone(),
+        original_path: target.path.clone(),
+        final_path,
+        original_name: target.original_name.clone(),
+        final_name: target.normalized_name.clone(),
+        collision: false,
+        reason,
+    })
+}
+
+// 크기를 먼저 보고, 같으면 끝까지 바이트를 비교한다. 아주 큰 파일은 비교하지 않는다(감시가 오래 멈추지 않게).
+const MAX_DUPLICATE_COMPARE_BYTES: u64 = 1024 * 1024 * 1024;
+
+fn files_have_same_content(left: &Path, right: &Path) -> bool {
+    use std::io::Read;
+
+    let (Ok(left_meta), Ok(right_meta)) = (fs::metadata(left), fs::metadata(right)) else {
+        return false;
+    };
+    if left_meta.len() != right_meta.len() || left_meta.len() > MAX_DUPLICATE_COMPARE_BYTES {
+        return false;
+    }
+    let (Ok(mut left_file), Ok(mut right_file)) = (fs::File::open(left), fs::File::open(right)) else {
+        return false;
+    };
+    let mut left_buffer = vec![0u8; 64 * 1024];
+    let mut right_buffer = vec![0u8; 64 * 1024];
+    loop {
+        let Ok(read) = left_file.read(&mut left_buffer) else {
+            return false;
+        };
+        if read == 0 {
+            // 왼쪽이 끝났으면 오른쪽도 끝나야 같다.
+            return matches!(right_file.read(&mut right_buffer[..1]), Ok(0));
+        }
+        if right_file.read_exact(&mut right_buffer[..read]).is_err()
+            || left_buffer[..read] != right_buffer[..read]
+        {
+            return false;
+        }
     }
 }
 
@@ -714,6 +782,60 @@ mod tests {
             fs::read_to_string(directory.path().join("가_1.txt")).unwrap(),
             "nfd"
         );
+    }
+
+    #[test]
+    fn removes_nfd_copy_when_identical_nfc_file_exists() {
+        let directory = tempdir().unwrap();
+
+        if !supports_distinct_normalization_names(directory.path()) {
+            return;
+        }
+
+        let nfd_name = "가.txt".nfd().collect::<String>();
+        fs::write(directory.path().join("가.txt"), "same").unwrap();
+        fs::write(directory.path().join(&nfd_name), "same").unwrap();
+
+        let results = normalize_directory(
+            directory.path(),
+            NormalizeOptions {
+                recursive: true,
+                dry_run: false,
+                stabilization_wait_ms: 0,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].status, "duplicate");
+        assert_eq!(results[0].final_name, "가.txt");
+        assert!(!directory.path().join(&nfd_name).exists());
+        assert!(!directory.path().join("가_1.txt").exists());
+        assert_eq!(
+            fs::read_to_string(directory.path().join("가.txt")).unwrap(),
+            "same"
+        );
+    }
+
+    #[test]
+    fn compares_file_contents_exactly() {
+        let directory = tempdir().unwrap();
+        let a = directory.path().join("a");
+        let b = directory.path().join("b");
+        let c = directory.path().join("c");
+        let d = directory.path().join("d");
+        let big = vec![7u8; 200 * 1024];
+        let mut changed = big.clone();
+        changed[150 * 1024] = 8;
+        fs::write(&a, &big).unwrap();
+        fs::write(&b, &big).unwrap();
+        fs::write(&c, &changed).unwrap();
+        fs::write(&d, &big[..1000]).unwrap();
+
+        assert!(files_have_same_content(&a, &b));
+        assert!(!files_have_same_content(&a, &c));
+        assert!(!files_have_same_content(&a, &d));
+        assert!(!files_have_same_content(&a, &directory.path().join("missing")));
     }
 
     #[test]

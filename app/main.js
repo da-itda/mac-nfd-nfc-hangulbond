@@ -1036,6 +1036,8 @@ function statusLabel(status) {
       return "성공";
     case "collision":
       return "충돌 처리";
+    case "duplicate":
+      return "같은 파일 정리";
     case "failed":
       return "실패";
     case "dry-run":
