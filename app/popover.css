@@ -1,0 +1,242 @@
+/* 맥 메뉴 막대 팝오버. 색·글꼴은 tokens.css를 쓴다.
+   창은 투명하고, 둥근 판(.popover) 하나가 창을 꽉 채운다. 그림자는 macOS 창이 그린다. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  font-size: 13px;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+h1,
+h2,
+p,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+.popover {
+  overflow: hidden;
+  border: 1px solid var(--card-stroke);
+  border-radius: 12px;
+  background: var(--layer-bg);
+  color: var(--text);
+}
+
+.pop-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 12px;
+}
+
+.pop-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-disabled);
+}
+
+.status-dot.is-on {
+  background: #34c759;
+}
+
+.pop-sub {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.pop-section {
+  padding: 10px 8px 8px;
+  border-top: 1px solid var(--divider);
+}
+
+.pop-section h2 {
+  padding: 0 8px 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.pop-list {
+  list-style: none;
+}
+
+.pop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 5px 8px;
+  border-radius: var(--radius-control);
+}
+
+.pop-item-icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--control-alt-bg);
+  color: var(--text-secondary);
+}
+
+.pop-item-icon.is-success {
+  color: var(--success);
+}
+
+.pop-item-icon.is-failed {
+  color: var(--danger);
+}
+
+.icon {
+  display: block;
+  width: 15px;
+  height: 15px;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+.icon-folder {
+  --icon: url("./icons/regular/folder.svg");
+}
+
+.icon-check {
+  --icon: url("./icons/regular/check.svg");
+}
+
+.icon-info {
+  --icon: url("./icons/regular/info.svg");
+}
+
+.pop-item-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pop-item-title,
+.pop-item-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pop-item-title {
+  font-size: 13px;
+}
+
+.pop-item-detail {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.pop-badge {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--card-stroke);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.pop-badge.is-on {
+  color: var(--success);
+}
+
+.pop-empty,
+.pop-more {
+  padding: 4px 8px 6px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.pop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 10px 16px;
+  border-top: 1px solid var(--divider);
+}
+
+.pop-version {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.pop-foot-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+button {
+  font: inherit;
+  cursor: default;
+}
+
+.link-button {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.12s ease;
+}
+
+.link-button:hover {
+  background: var(--subtle-hover);
+}
+
+.pill-button {
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--control-stroke);
+  border-radius: 999px;
+  background: var(--control-bg);
+  color: var(--text);
+  font-size: 12px;
+  transition: background-color 0.12s ease;
+}
+
+.pill-button:hover {
+  background: var(--control-bg-hover);
+}
+
+.pill-button:active,
+.link-button:active {
+  background: var(--control-bg-pressed);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}

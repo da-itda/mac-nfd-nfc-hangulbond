@@ -5,6 +5,8 @@ mod os;
 mod scanner;
 mod settings;
 mod stabilization;
+#[cfg(target_os = "macos")]
+mod tray_popover;
 mod watcher;
 
 use std::fs;
@@ -24,16 +26,20 @@ use settings::{load_settings_from_file, save_settings_to_file, AppSettings};
 use tauri::{
     async_runtime,
     image::Image,
-    menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, WindowEvent,
 };
+#[cfg(not(target_os = "macos"))]
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri_plugin_autostart::ManagerExt;
 use watcher::{WatchService, WatchStatus};
 
 const LEGACY_IDENTIFIERS: &[&str] = &["com.codex.hangul-nfc-normalizer", "com.hangulbond.app"];
 const AUTOSTART_ENTRY_NAME: &str = "HangulBond";
 const WEBSITE_URL: &str = "https://github.com/da-itda/mac-nfd-nfc-hangulbond";
+// 맥 설정 창은 화면 전체를 10% 작게 보여 준다. app/main.js의 PAGE_ZOOM과 같아야 한다.
+#[cfg(target_os = "macos")]
+const MAC_PAGE_ZOOM: f64 = 0.9;
 #[cfg(target_os = "macos")]
 const LEGACY_AUTOSTART_MARKERS: &[&str] = &[
     "한글본드",
@@ -347,6 +353,39 @@ async fn register_chrome_extension(
 #[tauri::command]
 fn open_extension_store() -> Result<(), String> {
     browser_extension::open_store()
+}
+
+// 팝오버의 단추: 즉시 확인, 설정 열기, 종료
+#[tauri::command]
+fn popover_action(app: AppHandle, action: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    tray_popover::hide(&app);
+    match action.as_str() {
+        "scan_now" => start_scan_now(&app),
+        "settings" => show_main_window(&app),
+        "quit" => app.exit(0),
+        _ => return Err(format!("unknown popover action: {action}")),
+    }
+    Ok(())
+}
+
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+// 저장된 폴더를 바로 정리하고, 진행 상황이 보이도록 설정 창을 연다.
+fn start_scan_now(app: &AppHandle) {
+    let app_handle = app.clone();
+    std::thread::spawn(move || {
+        if let Err(error) = normalize_saved_folders_impl(&app_handle) {
+            eprintln!("failed to normalize saved folders: {error}");
+        }
+    });
+    show_main_window(app);
 }
 
 #[tauri::command]
@@ -759,13 +798,6 @@ pub fn run() {
             let _ = migrate_legacy_app_data(app.handle());
             let legacy_autostart_was_enabled = cleanup_legacy_autostart_entries().unwrap_or(false);
 
-            let scan_now =
-                MenuItem::with_id(app, "scan_now", "즉시 확인 및 변경", true, None::<&str>)?;
-            let show_settings =
-                MenuItem::with_id(app, "show_settings", "한글본드 설정", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "한글본드 종료", true, None::<&str>)?;
-            let separator = PredefinedMenuItem::separator(app)?;
-            let menu = Menu::with_items(app, &[&scan_now, &show_settings, &separator, &quit])?;
             // macOS는 템플릿 아이콘으로 메뉴바 밝기에 맞춰 시스템이 색을 칠한다.
             #[cfg(target_os = "macos")]
             let tray_icon_bytes = include_bytes!("../icons/tray-template.png").as_slice();
@@ -778,52 +810,63 @@ pub fn run() {
             let tray_builder = TrayIconBuilder::with_id("main-tray")
                 .icon(tray_icon)
                 .icon_as_template(cfg!(target_os = "macos"))
-                .tooltip("한글본드")
-                .menu(&menu);
-            // Windows는 왼쪽 클릭으로 설정 창만 열고, 메뉴는 오른쪽 클릭으로 연다.
-            #[cfg(windows)]
-            let tray_builder = tray_builder.show_menu_on_left_click(false);
+                .tooltip("한글본드");
+            // macOS: 메뉴를 붙이면 아이콘을 누를 때 시스템이 메뉴를 먼저 띄운다.
+            // 메뉴 없이 팝오버만 쓰고, 즉시 확인·설정·종료는 팝오버 단추로 한다.
+            // Windows: 왼쪽 클릭은 설정 창, 오른쪽 클릭은 메뉴.
+            #[cfg(not(target_os = "macos"))]
+            let tray_builder = {
+                let scan_now =
+                    MenuItem::with_id(app, "scan_now", "즉시 확인 및 변경", true, None::<&str>)?;
+                let show_settings =
+                    MenuItem::with_id(app, "show_settings", "한글본드 설정", true, None::<&str>)?;
+                let quit = MenuItem::with_id(app, "quit", "한글본드 종료", true, None::<&str>)?;
+                let separator = PredefinedMenuItem::separator(app)?;
+                let menu =
+                    Menu::with_items(app, &[&scan_now, &show_settings, &separator, &quit])?;
+                tray_builder.menu(&menu).show_menu_on_left_click(false)
+            };
             let _tray = tray_builder
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "scan_now" => {
-                        let app_handle = app.clone();
-                        std::thread::spawn(move || {
-                            if let Err(error) = normalize_saved_folders_impl(&app_handle) {
-                                eprintln!("failed to normalize saved folders: {error}");
-                            }
-                        });
-
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                    "show_settings" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                    "quit" => {
-                        app.exit(0);
-                    }
+                    "scan_now" => start_scan_now(app),
+                    "show_settings" => show_main_window(app),
+                    "quit" => app.exit(0),
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
+                        rect,
                         ..
                     } = event
                     {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                        #[cfg(target_os = "macos")]
+                        tray_popover::toggle(tray.app_handle(), rect);
+                        #[cfg(not(target_os = "macos"))]
+                        {
+                            let _ = rect;
+                            show_main_window(tray.app_handle());
                         }
                     }
                 })
                 .build(app)?;
+
+            #[cfg(target_os = "macos")]
+            {
+                tray_popover::create(app.handle())?;
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_zoom(MAC_PAGE_ZOOM);
+                    let _ = window.set_min_size(Some(tauri::LogicalSize::new(
+                        500.0 * MAC_PAGE_ZOOM,
+                        180.0 * MAC_PAGE_ZOOM,
+                    )));
+                    let _ = window.set_size(tauri::LogicalSize::new(
+                        560.0 * MAC_PAGE_ZOOM,
+                        343.0 * MAC_PAGE_ZOOM,
+                    ));
+                }
+            }
 
             let settings_path = settings_file_path(app.handle())?;
             let is_first_run = !settings_path.exists();
@@ -873,12 +916,17 @@ pub fn run() {
             chrome_extension_status,
             register_chrome_extension,
             open_extension_store,
+            popover_action,
             restart_app
         ])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
+            }
+            #[cfg(target_os = "macos")]
+            WindowEvent::Focused(false) if window.label() == tray_popover::LABEL => {
+                tray_popover::on_focus_lost(window.app_handle());
             }
             #[cfg(windows)]
             WindowEvent::ThemeChanged(_) => {

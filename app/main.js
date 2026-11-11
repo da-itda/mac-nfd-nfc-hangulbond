@@ -6,9 +6,11 @@ const appWindow = window.__TAURI__.window.getCurrentWindow();
 const { LogicalSize } = window.__TAURI__.dpi;
 
 // 두 OS 모두 컴피 공용 디자인 기준을 쓴다. 맥은 styles.css의 platform-mac에서 조금 부드럽게 다듬는다.
-document.documentElement.classList.add(
-  navigator.userAgent.includes("Windows") ? "platform-windows" : "platform-mac"
-);
+const isWindows = navigator.userAgent.includes("Windows");
+document.documentElement.classList.add(isWindows ? "platform-windows" : "platform-mac");
+// 맥 설정 창은 화면 전체를 10% 작게 보여 준다(lib.rs의 MAC_PAGE_ZOOM과 같아야 한다).
+// 배율을 주면 웹 화면의 1px이 창의 0.9px이 되므로, 창 크기를 계산할 때 곱한다.
+const PAGE_ZOOM = isWindows ? 1 : 0.9;
 
 const MAX_WINDOW_HEIGHT = 720;
 
@@ -374,7 +376,7 @@ async function fitWindowToContent() {
   }
 
   const contentHeight = Math.min(MAX_WINDOW_HEIGHT, Math.ceil(tabsBar.offsetHeight + panel.scrollHeight));
-  if (contentHeight === window.innerHeight) {
+  if (Math.abs(contentHeight - window.innerHeight) < 1) {
     return;
   }
 
@@ -383,8 +385,10 @@ async function fitWindowToContent() {
     // 숨겨진 창에서는 window.innerWidth가 틀릴 수 있어 너비는 Tauri 값을 쓴다.
     const scale = await appWindow.scaleFactor();
     const windowSize = (await appWindow.innerSize()).toLogical(scale);
-    const chromeHeight = Math.max(0, Math.round(windowSize.height - window.innerHeight));
-    await appWindow.setSize(new LogicalSize(windowSize.width, contentHeight + chromeHeight));
+    const chromeHeight = Math.max(0, Math.round(windowSize.height - window.innerHeight * PAGE_ZOOM));
+    await appWindow.setSize(
+      new LogicalSize(windowSize.width, Math.ceil(contentHeight * PAGE_ZOOM) + chromeHeight)
+    );
   } catch (error) {
     console.warn("failed to fit window height", error);
   }

@@ -1,0 +1,110 @@
+/* 컴피 공용 디자인 기준 2판의 색·글꼴·모서리 값. 설정 창(styles.css)과 메뉴 막대 팝오버(popover.css)가 함께 쓴다.
+   밝게·어둡게는 시스템을 따른다. 맥(.platform-mac)은 모서리와 선을 조금 부드럽게 한다. */
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("./fonts/Pretendard-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("./fonts/Pretendard-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+:root {
+  --app-bg: #fafafa;
+  --layer-bg: #ffffff;
+  --card-bg: #ffffff;
+  --control-bg: #ffffff;
+  --control-bg-hover: #f5f5f5;
+  --control-bg-pressed: #ededed;
+  --control-bg-disabled: #f7f7f7;
+  --control-alt-bg: #f0f0f0;
+  --subtle-hover: rgba(0, 0, 0, 0.051);
+  --subtle-pressed: rgba(0, 0, 0, 0.031);
+  --card-stroke: #e6e6e6;
+  --control-stroke: #e0e0e0;
+  --control-stroke-bottom: #cbcbcb;
+  --control-stroke-strong: #8a8a8a;
+  --divider: #ebebeb;
+  --focus: #374151;
+  --text: #1f2937;
+  --text-secondary: #5b6472;
+  --text-tertiary: #8c939d;
+  --text-disabled: #adb2b9;
+  --text-on-accent: #ffffff;
+  --danger: #c0392f;
+  --success: #157347;
+  --accent: #374151;
+  --accent-hover: #4b5563;
+  --accent-pressed: #29323f;
+  --accent-text: #374151;
+  /* 모서리·카드 간격. 맥은 .platform-mac에서 조금 키운다. */
+  --radius-card: 4px;
+  --radius-control: 4px;
+  --radius-check: 3px;
+  --card-gap: 3px;
+  /* 드롭다운 화살표(Phosphor caret-down)는 배경 그림이라 글자색을 못 받아 색을 직접 넣는다. */
+  --caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%235b6472'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  color-scheme: light;
+  color: var(--text);
+  background: var(--app-bg);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #1a1a1a;
+    --layer-bg: #242424;
+    --card-bg: #272727;
+    --control-bg: #2b2b2b;
+    --control-bg-hover: #323232;
+    --control-bg-pressed: #383838;
+    --control-bg-disabled: #242424;
+    --control-alt-bg: #1f1f1f;
+    --subtle-hover: rgba(255, 255, 255, 0.078);
+    --subtle-pressed: rgba(255, 255, 255, 0.039);
+    --card-stroke: #353535;
+    --control-stroke: #3b3b3b;
+    --control-stroke-bottom: #191919;
+    --control-stroke-strong: #989898;
+    --divider: #303030;
+    --focus: #e4e4e4;
+    --text: #f2f2f2;
+    --text-secondary: #b4b4b4;
+    --text-tertiary: #888888;
+    --text-disabled: #666666;
+    --danger: #e8827a;
+    --success: #6fc28c;
+    --accent: #4b5563;
+    --accent-hover: #5d6a7b;
+    --accent-pressed: #3b4553;
+    --accent-text: #aeb9c7;
+    --caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%23b4b4b4'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+}
+
+/* 맥: 같은 기준을 조금 부드럽게 (모서리를 키우고, 단추 아래 진한 줄을 없애고, 카드 사이를 1px 넓힌다). */
+
+.platform-mac {
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-check: 5px;
+  --card-gap: 4px;
+  --card-stroke: #ebebeb;
+  --control-stroke-bottom: var(--control-stroke);
+}
+
+@media (prefers-color-scheme: dark) {
+  .platform-mac {
+    --card-stroke: #313131;
+    --control-stroke-bottom: var(--control-stroke);
+  }
+}

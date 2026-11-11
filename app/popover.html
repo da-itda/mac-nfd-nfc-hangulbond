@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko" class="platform-mac">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>한글본드</title>
+    <link rel="stylesheet" href="./tokens.css" />
+    <link rel="stylesheet" href="./popover.css" />
+  </head>
+  <body>
+    <main class="popover">
+      <header class="pop-head">
+        <div class="pop-title-block">
+          <h1 class="pop-title">
+            한글본드
+            <span id="status-dot" class="status-dot" aria-hidden="true"></span>
+          </h1>
+          <p id="status-text" class="pop-sub">상태 확인 중</p>
+        </div>
+        <button class="link-button" type="button" data-action="scan_now">즉시 확인</button>
+      </header>
+
+      <section class="pop-section">
+        <h2>최근 정리</h2>
+        <ul id="recent-list" class="pop-list"></ul>
+      </section>
+
+      <section class="pop-section">
+        <h2>감시 폴더</h2>
+        <ul id="folder-list" class="pop-list"></ul>
+      </section>
+
+      <footer class="pop-foot">
+        <span id="app-version" class="pop-version"></span>
+        <span class="pop-foot-buttons">
+          <button class="pill-button" type="button" data-action="settings">설정</button>
+          <button class="pill-button" type="button" data-action="quit">종료</button>
+        </span>
+      </footer>
+    </main>
+    <script src="./popover.js"></script>
+  </body>
+</html>
