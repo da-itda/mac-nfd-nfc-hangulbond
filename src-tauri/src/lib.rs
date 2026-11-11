@@ -37,9 +37,8 @@ use watcher::{WatchService, WatchStatus};
 const LEGACY_IDENTIFIERS: &[&str] = &["com.codex.hangul-nfc-normalizer", "com.hangulbond.app"];
 const AUTOSTART_ENTRY_NAME: &str = "HangulBond";
 const WEBSITE_URL: &str = "https://github.com/da-itda/mac-nfd-nfc-hangulbond";
-// 맥 설정 창은 화면 전체를 10% 작게 보여 준다. app/main.js의 PAGE_ZOOM과 같아야 한다.
-#[cfg(target_os = "macos")]
-const MAC_PAGE_ZOOM: f64 = 0.9;
+// 설정 창은 두 OS 모두 화면 전체를 10% 작게 보여 준다. app/main.js의 PAGE_ZOOM과 같아야 한다.
+const PAGE_ZOOM: f64 = 0.9;
 #[cfg(target_os = "macos")]
 const LEGACY_AUTOSTART_MARKERS: &[&str] = &[
     "한글본드",
@@ -853,19 +852,17 @@ pub fn run() {
                 .build(app)?;
 
             #[cfg(target_os = "macos")]
-            {
-                tray_popover::create(app.handle())?;
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_zoom(MAC_PAGE_ZOOM);
-                    let _ = window.set_min_size(Some(tauri::LogicalSize::new(
-                        500.0 * MAC_PAGE_ZOOM,
-                        180.0 * MAC_PAGE_ZOOM,
-                    )));
-                    let _ = window.set_size(tauri::LogicalSize::new(
-                        560.0 * MAC_PAGE_ZOOM,
-                        343.0 * MAC_PAGE_ZOOM,
-                    ));
-                }
+            tray_popover::create(app.handle())?;
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_zoom(PAGE_ZOOM);
+                let _ = window.set_min_size(Some(tauri::LogicalSize::new(
+                    500.0 * PAGE_ZOOM,
+                    180.0 * PAGE_ZOOM,
+                )));
+                let _ = window.set_size(tauri::LogicalSize::new(
+                    560.0 * PAGE_ZOOM,
+                    343.0 * PAGE_ZOOM,
+                ));
             }
 
             let settings_path = settings_file_path(app.handle())?;
