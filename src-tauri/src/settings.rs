@@ -88,6 +88,20 @@ pub fn save_settings_to_file(
     })
 }
 
+// 감시 목록의 `from` 폴더를 `to`로 바꾼다. 이미 `to`가 있으면 `from`만 뺀다. 바뀌었으면 true.
+#[cfg_attr(not(any(windows, test)), allow(dead_code))]
+pub fn move_watch_folder(folders: &mut Vec<WatchFolder>, from: &Path, to: &Path) -> bool {
+    let Some(index) = folders.iter().position(|folder| folder.path == from) else {
+        return false;
+    };
+    if folders.iter().any(|folder| folder.path == to) {
+        folders.remove(index);
+    } else {
+        folders[index].path = to.to_path_buf();
+    }
+    true
+}
+
 fn normalize_watch_folders(folders: Vec<WatchFolder>) -> Vec<WatchFolder> {
     let mut normalized = Vec::new();
 
@@ -114,6 +128,29 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+
+    fn folder(path: &str) -> WatchFolder {
+        WatchFolder {
+            path: PathBuf::from(path),
+            recursive: true,
+            enabled: true,
+        }
+    }
+
+    #[test]
+    fn moves_watch_folder_to_new_location() {
+        let mut folders = vec![folder("/u/Downloads"), folder("/u/Desktop")];
+        assert!(move_watch_folder(&mut folders, Path::new("/u/Desktop"), Path::new("/u/OneDrive/Desktop")));
+        assert_eq!(folders, vec![folder("/u/Downloads"), folder("/u/OneDrive/Desktop")]);
+
+        let mut folders = vec![folder("/u/Desktop"), folder("/u/OneDrive/Desktop")];
+        assert!(move_watch_folder(&mut folders, Path::new("/u/Desktop"), Path::new("/u/OneDrive/Desktop")));
+        assert_eq!(folders, vec![folder("/u/OneDrive/Desktop")]);
+
+        let mut folders = vec![folder("/u/Downloads")];
+        assert!(!move_watch_folder(&mut folders, Path::new("/u/Desktop"), Path::new("/u/OneDrive/Desktop")));
+        assert_eq!(folders, vec![folder("/u/Downloads")]);
+    }
 
     #[test]
     fn returns_default_settings_when_file_is_missing() {

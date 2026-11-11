@@ -618,6 +618,20 @@ fn apply_windows_first_run_defaults(app: &AppHandle, settings: &mut AppSettings)
     settings.launch_at_login = sync_launch_at_login(app, true).is_ok();
 }
 
+// 설치한 뒤에 OneDrive 바탕화면 백업을 켜면 바탕화면이 OneDrive 안으로 옮겨진다.
+// 감시 목록에 예전 기본 바탕화면(%USERPROFILE%\Desktop)이 남아 있으면 새 위치로 바꾼다.
+// 사용자가 직접 추가한 다른 폴더는 건드리지 않는다.
+#[cfg(windows)]
+fn follow_moved_windows_desktop(app: &AppHandle, settings: &mut AppSettings) {
+    let (Ok(home), Ok(desktop)) = (home_dir(), app.path().desktop_dir()) else {
+        return;
+    };
+    let default_desktop = home.join("Desktop");
+    if desktop != default_desktop && desktop.is_dir() {
+        settings::move_watch_folder(&mut settings.watch_folders, &default_desktop, &desktop);
+    }
+}
+
 // Windows 작업 표시줄은 아이콘 색을 바꿔 주지 않는다. 작업 표시줄 테마(밝게·어둡게)에 맞는 아이콘을 고른다.
 // 값이 없으면(예전 Windows 10 기본값) 어두운 작업 표시줄로 본다.
 #[cfg(windows)]
@@ -820,6 +834,8 @@ pub fn run() {
             #[cfg(windows)]
             if is_first_run {
                 apply_windows_first_run_defaults(app.handle(), &mut settings);
+            } else {
+                follow_moved_windows_desktop(app.handle(), &mut settings);
             }
             if legacy_autostart_was_enabled && settings.launch_at_login {
                 let _ = sync_launch_at_login(app.handle(), true);
