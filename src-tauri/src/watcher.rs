@@ -204,6 +204,7 @@ fn run_watch_loop(
 
         if last_sweep.elapsed() >= sweep_interval {
             let sweep_started = Instant::now();
+            let mut sweep_found_targets = false;
             for folder in &folders {
                 match normalize_directory(
                     &folder.path,
@@ -213,6 +214,7 @@ fn run_watch_loop(
                     },
                 ) {
                     Ok(results) => {
+                        sweep_found_targets |= !results.is_empty();
                         handle_results(
                             &results,
                             &log_file_path,
@@ -230,7 +232,14 @@ fn run_watch_loop(
                 }
             }
             reported_failures.forget_missing();
-            sweep_interval = next_sweep_interval(sweep_started.elapsed());
+            // 정리할 파일이 있었으면 저장 완료 대기(수 초)가 검사 시간에 섞인다.
+            // 그 시간으로 간격을 늘리면 바로 뒤에 다시 저장된 파일이 최대 1분 늦게 정리되므로,
+            // 간격은 정리할 것이 없던 순수 검사 시간으로만 정한다.
+            sweep_interval = if sweep_found_targets {
+                SWEEP_INTERVAL
+            } else {
+                next_sweep_interval(sweep_started.elapsed())
+            };
             last_sweep = Instant::now();
         }
     }
