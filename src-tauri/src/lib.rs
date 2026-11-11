@@ -1,6 +1,7 @@
 mod browser_extension;
 mod logs;
 mod normalizer;
+mod os;
 mod scanner;
 mod settings;
 mod stabilization;
@@ -8,14 +9,13 @@ mod watcher;
 
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-#[cfg(unix)]
-use std::os::fd::AsRawFd;
-
 use logs::{append_rename_results, read_recent_logs, LogEntry};
+use os::home_dir;
 use scanner::{
     normalize_directory_with_progress, normalize_selected_targets, scan_directory_interruptible,
     NormalizeOptions, NormalizeOutcome, NormalizeProgress, RenameResult, ScanOutcome, ScanTarget,
@@ -317,7 +317,7 @@ fn app_info(app: AppHandle) -> Result<AppInfo, String> {
 
 #[tauri::command]
 fn open_website() -> Result<(), String> {
-    open_external_url(WEBSITE_URL)
+    os::open_url(WEBSITE_URL)
 }
 
 #[tauri::command]
@@ -346,12 +346,6 @@ async fn register_chrome_extension(
 #[tauri::command]
 fn open_extension_store() -> Result<(), String> {
     browser_extension::open_store()
-}
-
-fn home_dir() -> Result<PathBuf, String> {
-    std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or_else(|| "HOME is not set".to_string())
 }
 
 #[tauri::command]
@@ -403,23 +397,15 @@ fn acquire_single_instance_lock(app: &AppHandle) -> Result<Option<fs::File>, Str
     }
 }
 
-#[cfg(unix)]
+// macOS는 flock, Windows는 LockFileEx로 잠근다. 다른 실행본이 잡고 있으면 false.
 fn try_lock_instance_file(lock_file: &fs::File) -> Result<bool, String> {
-    let result = unsafe { libc::flock(lock_file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
-    if result == 0 {
-        return Ok(true);
+    match lock_file.try_lock() {
+        Ok(()) => Ok(true),
+        Err(fs::TryLockError::WouldBlock) => Ok(false),
+        Err(fs::TryLockError::Error(error)) => {
+            Err(format!("failed to lock instance file: {error}"))
+        }
     }
-
-    let error = std::io::Error::last_os_error();
-    match error.kind() {
-        std::io::ErrorKind::WouldBlock => Ok(false),
-        _ => Err(format!("failed to lock instance file: {error}")),
-    }
-}
-
-#[cfg(not(unix))]
-fn try_lock_instance_file(_lock_file: &fs::File) -> Result<bool, String> {
-    Ok(true)
 }
 
 fn release_runtime_guards(app: &AppHandle) -> Result<(), String> {
@@ -486,34 +472,6 @@ fn copy_if_missing(
     })?;
 
     Ok(())
-}
-
-fn open_external_url(url: &str) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    let mut command = {
-        let mut command = Command::new("open");
-        command.arg(url);
-        command
-    };
-
-    #[cfg(target_os = "windows")]
-    let mut command = {
-        let mut command = Command::new("cmd");
-        command.args(["/C", "start", "", url]);
-        command
-    };
-
-    #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
-    let mut command = {
-        let mut command = Command::new("xdg-open");
-        command.arg(url);
-        command
-    };
-
-    command
-        .spawn()
-        .map(|_| ())
-        .map_err(|error| format!("failed to open {url}: {error}"))
 }
 
 fn sync_watch_service(app: &AppHandle, settings: &AppSettings) -> Result<WatchStatus, String> {
@@ -641,6 +599,24 @@ fn current_uid() -> Option<String> {
     Some(uid.trim().to_string())
 }
 
+// Windows에서는 맥에서 보낸 파일을 받아 저장하는 곳(다운로드·바탕화면)을 처음부터 감시한다.
+// 바탕화면이 OneDrive로 옮겨져 있어도 Windows 알려진 폴더 API로 실제 경로를 찾는다.
+#[cfg(windows)]
+fn apply_windows_first_run_defaults(app: &AppHandle, settings: &mut AppSettings) {
+    let folders = [app.path().download_dir(), app.path().desktop_dir()];
+    for path in folders.into_iter().flatten() {
+        if path.is_dir() && !settings.watch_folders.iter().any(|folder| folder.path == path) {
+            settings.watch_folders.push(settings::WatchFolder {
+                path,
+                recursive: true,
+                enabled: true,
+            });
+        }
+    }
+    settings.auto_watch_enabled = !settings.watch_folders.is_empty();
+    settings.launch_at_login = sync_launch_at_login(app, true).is_ok();
+}
+
 fn emit_normalize_progress(app: &AppHandle, scope: &str, progress: NormalizeProgress) {
     let _ = app.emit(
         "normalize-progress",
@@ -754,11 +730,15 @@ pub fn run() {
             let tray_icon_bytes = include_bytes!("../icons/tray.png").as_slice();
             let tray_icon = Image::from_bytes(tray_icon_bytes)?;
 
-            let _tray = TrayIconBuilder::with_id("main-tray")
+            let tray_builder = TrayIconBuilder::with_id("main-tray")
                 .icon(tray_icon)
                 .icon_as_template(cfg!(target_os = "macos"))
                 .tooltip("한글본드")
-                .menu(&menu)
+                .menu(&menu);
+            // Windows는 왼쪽 클릭으로 설정 창만 열고, 메뉴는 오른쪽 클릭으로 연다.
+            #[cfg(windows)]
+            let tray_builder = tray_builder.show_menu_on_left_click(false);
+            let _tray = tray_builder
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "scan_now" => {
                         let app_handle = app.clone();
@@ -806,6 +786,10 @@ pub fn run() {
                 .first_run
                 .store(is_first_run, Ordering::SeqCst);
             let mut settings = load_settings_from_file(&settings_path)?;
+            #[cfg(windows)]
+            if is_first_run {
+                apply_windows_first_run_defaults(app.handle(), &mut settings);
+            }
             if legacy_autostart_was_enabled && settings.launch_at_login {
                 let _ = sync_launch_at_login(app.handle(), true);
             }
@@ -854,7 +838,7 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod single_instance_tests {
     use super::try_lock_instance_file;
     use std::fs;
