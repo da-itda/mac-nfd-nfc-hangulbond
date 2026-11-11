@@ -9,7 +9,7 @@ use serde::Serialize;
 use crate::normalizer::{
     build_collision_safe_name, create_rename_plan, is_temporary_or_ignored_name,
 };
-use crate::stabilization::{wait_for_stable_path, StabilityOptions, StabilityStatus};
+use crate::stabilization::{wait_for_stable_paths, StabilityOptions, StabilityStatus};
 
 const EXCLUDED_DIRECTORY_NAMES: &[&str] = &[".git", "node_modules"];
 
@@ -144,12 +144,13 @@ where
         reason: None,
     });
 
-    for target in targets {
+    let statuses = stability_for_targets(&targets, options.stabilization_wait_ms);
+    for (target, status) in targets.into_iter().zip(statuses) {
         if cancel.load(Ordering::Relaxed) {
             break;
         }
 
-        let result = apply_rename_target(&target, options.stabilization_wait_ms);
+        let result = rename_target(&target, status);
         let completed = results.len() + 1;
         on_progress(NormalizeProgress {
             phase: "item".to_string(),
@@ -178,15 +179,53 @@ where
     Ok(NormalizeOutcome { results, cancelled })
 }
 
+#[cfg(test)]
 pub fn normalize_path(path: &Path, options: NormalizeOptions) -> Result<Vec<RenameResult>, String> {
-    let metadata = fs::metadata(path)
-        .map_err(|error| format!("failed to inspect {}: {error}", path.display()))?;
+    normalize_paths(&[path.to_path_buf()], options)
+}
 
-    if metadata.is_dir() {
-        return normalize_directory(path, options);
+// 감시 중 한꺼번에 생긴 파일들을 처리한다. 폴더는 안쪽까지 정리하고, 파일은 안정 대기를 한 번만 한다.
+pub fn normalize_paths(paths: &[PathBuf], options: NormalizeOptions) -> Result<Vec<RenameResult>, String> {
+    let mut results = Vec::new();
+    let mut targets = Vec::new();
+
+    for path in paths {
+        let planned = fs::metadata(path)
+            .map_err(|error| format!("failed to inspect {}: {error}", path.display()))
+            .and_then(|metadata| {
+                if metadata.is_dir() {
+                    results.extend(normalize_directory(path, options)?);
+                    Ok(None)
+                } else {
+                    plan_file_target(path, &metadata)
+                }
+            });
+        match planned {
+            Ok(Some(target)) => targets.push(target),
+            Ok(None) => {}
+            Err(error) if paths.len() == 1 => return Err(error),
+            // 여러 경로 중 하나가 그새 사라져도 나머지는 계속 처리한다.
+            Err(error) => eprintln!("{error}"),
+        }
     }
 
-    let (current_path, file_name) = resolve_current_entry(path, &metadata).unwrap_or_else(|| {
+    if options.dry_run {
+        results.extend(targets.iter().map(dry_run_result));
+    } else {
+        let statuses = stability_for_targets(&targets, options.stabilization_wait_ms);
+        results.extend(
+            targets
+                .iter()
+                .zip(statuses)
+                .map(|(target, status)| rename_target(target, status)),
+        );
+    }
+
+    Ok(results)
+}
+
+fn plan_file_target(path: &Path, metadata: &fs::Metadata) -> Result<Option<ScanTarget>, String> {
+    let (current_path, file_name) = resolve_current_entry(path, metadata).unwrap_or_else(|| {
         let fallback_name = path
             .file_name()
             .and_then(|value| value.to_str())
@@ -197,8 +236,8 @@ pub fn normalize_path(path: &Path, options: NormalizeOptions) -> Result<Vec<Rena
     });
     let parent_path = current_path
         .parent()
-        .ok_or_else(|| format!("failed to resolve parent for {}", current_path.display()))?;
-    let parent_path = parent_path.to_path_buf();
+        .ok_or_else(|| format!("failed to resolve parent for {}", current_path.display()))?
+        .to_path_buf();
 
     if file_name.is_empty() {
         return Err(format!("failed to read file name for {}", path.display()));
@@ -221,41 +260,31 @@ pub fn normalize_path(path: &Path, options: NormalizeOptions) -> Result<Vec<Rena
     let plan = create_rename_plan(&file_name, &reserved_names);
 
     if !plan.analysis.should_rename {
-        return Ok(Vec::new());
+        return Ok(None);
     }
 
-    let target = ScanTarget {
-        kind: if metadata.is_dir() {
-            "directory"
-        } else {
-            "file"
-        }
-        .to_string(),
+    Ok(Some(ScanTarget {
+        kind: "file".to_string(),
         path: current_path,
         parent_path,
         original_name: plan.analysis.original_name,
         normalized_name: plan.analysis.normalized_name,
         final_name: plan.final_name,
         collision: plan.collision,
-    };
+    }))
+}
 
-    if options.dry_run {
-        return Ok(vec![RenameResult {
-            status: "dry-run".to_string(),
-            kind: target.kind.clone(),
-            original_path: target.path.clone(),
-            final_path: Some(target.parent_path.join(&target.final_name)),
-            original_name: target.original_name.clone(),
-            final_name: target.final_name.clone(),
-            collision: target.collision,
-            reason: None,
-        }]);
+fn dry_run_result(target: &ScanTarget) -> RenameResult {
+    RenameResult {
+        status: "dry-run".to_string(),
+        kind: target.kind.clone(),
+        original_path: target.path.clone(),
+        final_path: Some(target.parent_path.join(&target.final_name)),
+        original_name: target.original_name.clone(),
+        final_name: target.final_name.clone(),
+        collision: target.collision,
+        reason: None,
     }
-
-    Ok(vec![apply_rename_target(
-        &target,
-        options.stabilization_wait_ms,
-    )])
 }
 
 pub fn normalize_directory(
@@ -287,20 +316,16 @@ where
         reason: None,
     });
 
-    for target in targets {
+    let statuses = if options.dry_run {
+        vec![StabilityStatus::Stable; targets.len()]
+    } else {
+        stability_for_targets(&targets, options.stabilization_wait_ms)
+    };
+    for (target, status) in targets.into_iter().zip(statuses) {
         let result = if options.dry_run {
-            RenameResult {
-                status: "dry-run".to_string(),
-                kind: target.kind.clone(),
-                original_path: target.path.clone(),
-                final_path: Some(target.parent_path.join(&target.final_name)),
-                original_name: target.original_name.clone(),
-                final_name: target.final_name.clone(),
-                collision: target.collision,
-                reason: None,
-            }
+            dry_run_result(&target)
         } else {
-            apply_rename_target(&target, options.stabilization_wait_ms)
+            rename_target(&target, status)
         };
 
         let completed = results.len() + 1;
@@ -422,13 +447,32 @@ fn walk_directory(
     Ok(())
 }
 
-fn apply_rename_target(target: &ScanTarget, stabilization_wait_ms: u64) -> RenameResult {
-    if target.kind == "file" {
-        let status = wait_for_stable_path(
-            &target.path,
-            StabilityOptions::from_millis(stabilization_wait_ms),
-        );
+// 파일은 쓰기가 끝났는지 한꺼번에 확인한다. 폴더는 바로 바꿀 수 있다.
+fn stability_for_targets(targets: &[ScanTarget], stabilization_wait_ms: u64) -> Vec<StabilityStatus> {
+    let file_paths = targets
+        .iter()
+        .filter(|target| target.kind == "file")
+        .map(|target| target.path.clone())
+        .collect::<Vec<_>>();
+    let mut file_statuses = wait_for_stable_paths(
+        &file_paths,
+        StabilityOptions::from_millis(stabilization_wait_ms),
+    )
+    .into_iter();
+    targets
+        .iter()
+        .map(|target| {
+            if target.kind == "file" {
+                file_statuses.next().unwrap_or(StabilityStatus::Missing)
+            } else {
+                StabilityStatus::Stable
+            }
+        })
+        .collect()
+}
 
+fn rename_target(target: &ScanTarget, status: StabilityStatus) -> RenameResult {
+    if target.kind == "file" {
         if status != StabilityStatus::Stable {
             return RenameResult {
                 status: "failed".to_string(),
@@ -469,9 +513,25 @@ fn apply_rename_target(target: &ScanTarget, stabilization_wait_ms: u64) -> Renam
             original_name: refreshed.original_name,
             final_name: refreshed.final_name,
             collision: refreshed.collision,
-            reason: Some(error.to_string()),
+            reason: Some(rename_error_reason(&error)),
         },
     }
+}
+
+// Windows는 다른 프로그램이 연 파일의 이름을 바꿀 수 없다. 주기 검사에서 다시 시도하므로 그 사실을 알린다.
+fn rename_error_reason(error: &std::io::Error) -> String {
+    #[cfg(windows)]
+    {
+        const ERROR_SHARING_VIOLATION: i32 = 32;
+        const ERROR_LOCK_VIOLATION: i32 = 33;
+        if matches!(
+            error.raw_os_error(),
+            Some(ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION)
+        ) {
+            return "다른 프로그램이 파일을 사용 중입니다. 닫으면 다시 시도합니다.".to_string();
+        }
+    }
+    error.to_string()
 }
 
 fn refresh_collision_target(target: &ScanTarget) -> ScanTarget {

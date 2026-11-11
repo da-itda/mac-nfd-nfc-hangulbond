@@ -9,7 +9,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
 use crate::logs::append_rename_results;
-use crate::scanner::{normalize_directory, normalize_path, NormalizeOptions, RenameResult};
+use crate::scanner::{normalize_directory, normalize_paths, NormalizeOptions, RenameResult};
 use crate::settings::{AppSettings, WatchFolder};
 
 const DEBOUNCE_DURATION: Duration = Duration::from_secs(3);
@@ -146,6 +146,7 @@ fn run_watch_loop(
 ) {
     let mut pending = PendingEvents::new(DEBOUNCE_DURATION);
     let mut recent_conversions = RecentConversions::new(RECENT_CONVERSION_IGNORE_DURATION);
+    let mut reported_failures = ReportedFailures::default();
     let mut last_sweep = Instant::now();
 
     loop {
@@ -168,25 +169,24 @@ fn run_watch_loop(
             Err(RecvTimeoutError::Disconnected) => return,
         }
 
-        for path in pending.ready_paths() {
-            if recent_conversions.should_ignore(&path) {
-                continue;
-            }
-
-            match normalize_path(&path, options) {
+        let ready = pending
+            .ready_paths()
+            .into_iter()
+            .filter(|path| !recent_conversions.should_ignore(path))
+            .collect::<Vec<_>>();
+        if !ready.is_empty() {
+            match normalize_paths(&ready, options) {
                 Ok(results) => {
                     handle_results(
                         &results,
                         &log_file_path,
                         app_handle.as_ref(),
                         &mut recent_conversions,
+                        &mut reported_failures,
                     );
                 }
                 Err(error) => {
-                    eprintln!(
-                        "failed to normalize watched path {}: {error}",
-                        path.display()
-                    );
+                    eprintln!("failed to normalize watched paths: {error}");
                 }
             }
         }
@@ -206,6 +206,7 @@ fn run_watch_loop(
                             &log_file_path,
                             app_handle.as_ref(),
                             &mut recent_conversions,
+                            &mut reported_failures,
                         );
                     }
                     Err(error) => {
@@ -216,6 +217,7 @@ fn run_watch_loop(
                     }
                 }
             }
+            reported_failures.forget_missing();
             last_sweep = Instant::now();
         }
     }
@@ -226,11 +228,8 @@ fn handle_results(
     log_file_path: &Path,
     app_handle: Option<&AppHandle>,
     recent_conversions: &mut RecentConversions,
+    reported_failures: &mut ReportedFailures,
 ) {
-    if results.is_empty() {
-        return;
-    }
-
     for result in results {
         if let Some(final_path) = &result.final_path {
             recent_conversions.mark(final_path.clone());
@@ -238,12 +237,44 @@ fn handle_results(
         recent_conversions.mark(result.original_path.clone());
     }
 
-    if let Err(error) = append_rename_results(log_file_path, results) {
+    let results = results
+        .iter()
+        .filter(|result| reported_failures.should_report(result))
+        .cloned()
+        .collect::<Vec<_>>();
+    if results.is_empty() {
+        return;
+    }
+
+    if let Err(error) = append_rename_results(log_file_path, &results) {
         eprintln!("failed to append watch log: {error}");
     }
 
     if let Some(app) = app_handle {
-        let _ = app.emit("watcher-results", results);
+        let _ = app.emit("watcher-results", &results);
+    }
+}
+
+// 열려 있는 파일처럼 같은 이유로 계속 실패하는 항목은 주기 검사마다 다시 시도하지만 기록은 한 번만 남긴다.
+#[derive(Debug, Default)]
+struct ReportedFailures {
+    reasons: HashMap<PathBuf, Option<String>>,
+}
+
+impl ReportedFailures {
+    fn should_report(&mut self, result: &RenameResult) -> bool {
+        if result.status != "failed" {
+            self.reasons.remove(&result.original_path);
+            return true;
+        }
+        let previous = self
+            .reasons
+            .insert(result.original_path.clone(), result.reason.clone());
+        previous.as_ref() != Some(&result.reason)
+    }
+
+    fn forget_missing(&mut self) {
+        self.reasons.retain(|path, _| path.exists());
     }
 }
 
@@ -377,6 +408,31 @@ mod tests {
         assert!(recent.should_ignore(&path));
         thread::sleep(Duration::from_millis(30));
         assert!(!recent.should_ignore(&path));
+    }
+
+    fn rename_result(status: &str, reason: Option<&str>) -> RenameResult {
+        RenameResult {
+            status: status.to_string(),
+            kind: "file".to_string(),
+            original_path: PathBuf::from("/tmp/a"),
+            final_path: None,
+            original_name: "a".to_string(),
+            final_name: "a".to_string(),
+            collision: false,
+            reason: reason.map(ToString::to_string),
+        }
+    }
+
+    #[test]
+    fn repeated_failures_are_reported_once() {
+        let mut reported = ReportedFailures::default();
+        let busy = rename_result("failed", Some("busy"));
+
+        assert!(reported.should_report(&busy));
+        assert!(!reported.should_report(&busy));
+        assert!(reported.should_report(&rename_result("failed", Some("other"))));
+        assert!(reported.should_report(&rename_result("success", None)));
+        assert!(reported.should_report(&busy));
     }
 
     #[test]
