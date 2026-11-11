@@ -744,6 +744,8 @@ mod tests {
             Err(error) => panic!("failed to create probe file: {error}"),
         }
 
-        fs::read_dir(&probe).unwrap().count() == 2
+        let distinct = fs::read_dir(&probe).unwrap().count() == 2;
+        fs::remove_dir_all(&probe).unwrap();
+        distinct
     }
 }
