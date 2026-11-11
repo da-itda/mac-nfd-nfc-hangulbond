@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -188,6 +188,7 @@ pub fn normalize_path(path: &Path, options: NormalizeOptions) -> Result<Vec<Rena
 pub fn normalize_paths(paths: &[PathBuf], options: NormalizeOptions) -> Result<Vec<RenameResult>, String> {
     let mut results = Vec::new();
     let mut targets = Vec::new();
+    let mut listings = HashMap::new();
 
     for path in paths {
         let planned = fs::metadata(path)
@@ -197,7 +198,7 @@ pub fn normalize_paths(paths: &[PathBuf], options: NormalizeOptions) -> Result<V
                     results.extend(normalize_directory(path, options)?);
                     Ok(None)
                 } else {
-                    plan_file_target(path, &metadata)
+                    plan_file_target(path, &metadata, &mut listings)
                 }
             });
         match planned {
@@ -224,44 +225,73 @@ pub fn normalize_paths(paths: &[PathBuf], options: NormalizeOptions) -> Result<V
     Ok(results)
 }
 
-fn plan_file_target(path: &Path, metadata: &fs::Metadata) -> Result<Option<ScanTarget>, String> {
-    let (current_path, file_name) = resolve_current_entry(path, metadata).unwrap_or_else(|| {
-        let fallback_name = path
-            .file_name()
-            .and_then(|value| value.to_str())
-            .unwrap_or_default()
-            .to_string();
+// 감시로 들어온 파일들의 부모 폴더 목록. 폴더마다 한 번만 읽어서, 큰 폴더에 파일이
+// 한꺼번에 들어와도 파일 수만큼 폴더 전체를 다시 읽지 않는다.
+struct ParentListing {
+    names: HashSet<String>,
+    identities: HashMap<EntryIdentity, (PathBuf, String)>,
+}
 
-        (path.to_path_buf(), fallback_name)
-    });
-    let parent_path = current_path
+fn read_parent_listing(parent_path: &Path) -> Result<ParentListing, String> {
+    let mut listing = ParentListing {
+        names: HashSet::new(),
+        identities: HashMap::new(),
+    };
+    for entry in fs::read_dir(parent_path)
+        .map_err(|error| format!("failed to read {}: {error}", parent_path.display()))?
+    {
+        let entry = entry.map_err(|error| {
+            format!("failed to read entry in {}: {error}", parent_path.display())
+        })?;
+        let Some(name) = entry.file_name().to_str().map(ToString::to_string) else {
+            continue;
+        };
+        if let Some(identity) = dir_entry_identity(&entry) {
+            listing.identities.insert(identity, (entry.path(), name.clone()));
+        }
+        listing.names.insert(name);
+    }
+    Ok(listing)
+}
+
+fn plan_file_target(
+    path: &Path,
+    metadata: &fs::Metadata,
+    listings: &mut HashMap<PathBuf, ParentListing>,
+) -> Result<Option<ScanTarget>, String> {
+    let parent_path = path
         .parent()
-        .ok_or_else(|| format!("failed to resolve parent for {}", current_path.display()))?
+        .ok_or_else(|| format!("failed to resolve parent for {}", path.display()))?
         .to_path_buf();
+    let listing = match listings.entry(parent_path.clone()) {
+        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+        std::collections::hash_map::Entry::Vacant(entry) => {
+            entry.insert(read_parent_listing(&parent_path)?)
+        }
+    };
+
+    // 이벤트 경로와 실제 이름의 정규화 형태가 다를 수 있어(macOS), 같은 파일을 찾아 실제 이름을 쓴다.
+    let (current_path, file_name) = metadata_identity(metadata)
+        .and_then(|identity| listing.identities.get(&identity).cloned())
+        .unwrap_or_else(|| {
+            let fallback_name = path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default()
+                .to_string();
+            (path.to_path_buf(), fallback_name)
+        });
 
     if file_name.is_empty() {
         return Err(format!("failed to read file name for {}", path.display()));
     }
 
-    let file_name = current_path
-        .file_name()
-        .and_then(|value| value.to_str())
-        .map(ToString::to_string)
-        .unwrap_or(file_name);
-
-    let entries = fs::read_dir(&parent_path)
-        .map_err(|error| format!("failed to read {}: {error}", parent_path.display()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("failed to read entry in {}: {error}", parent_path.display()))?;
-    let reserved_names = entries
-        .iter()
-        .filter_map(|entry| entry.file_name().to_str().map(ToString::to_string))
-        .collect::<HashSet<_>>();
-    let plan = create_rename_plan(&file_name, &reserved_names);
+    let plan = create_rename_plan(&file_name, &listing.names);
 
     if !plan.analysis.should_rename {
         return Ok(None);
     }
+    listing.names.insert(plan.final_name.clone());
 
     Ok(Some(ScanTarget {
         kind: "file".to_string(),
@@ -535,16 +565,16 @@ fn rename_error_reason(error: &std::io::Error) -> String {
 }
 
 fn refresh_collision_target(target: &ScanTarget) -> ScanTarget {
-    let current_names = fs::read_dir(&target.parent_path)
-        .ok()
-        .into_iter()
-        .flat_map(|entries| entries.filter_map(Result::ok))
-        .filter_map(|entry| entry.file_name().to_str().map(ToString::to_string))
-        .collect::<HashSet<_>>();
-
     let target_path = target.parent_path.join(&target.final_name);
+    // 폴더 목록은 실제로 이름이 겹칠 때만 읽는다. 큰 폴더에서 파일마다 다시 읽지 않기 위해서다.
     let final_name =
         if target_path.exists() && !paths_refer_to_same_entry(&target.path, &target_path) {
+            let current_names = fs::read_dir(&target.parent_path)
+                .ok()
+                .into_iter()
+                .flat_map(|entries| entries.filter_map(Result::ok))
+                .filter_map(|entry| entry.file_name().to_str().map(ToString::to_string))
+                .collect::<HashSet<_>>();
             build_collision_safe_name(&target.normalized_name, &current_names)
         } else {
             target.final_name.clone()
@@ -557,24 +587,28 @@ fn refresh_collision_target(target: &ScanTarget) -> ScanTarget {
     }
 }
 
-fn resolve_current_entry(path: &Path, metadata: &fs::Metadata) -> Option<(PathBuf, String)> {
-    let parent_path = path.parent()?;
-    let entries = fs::read_dir(parent_path).ok()?;
+// 같은 파일인지 가리는 식별값(장치·inode). Windows에서는 쓰지 않으므로 폴더 항목마다 메타데이터를 읽지 않는다.
+type EntryIdentity = (u64, u64);
 
-    for entry in entries.filter_map(Result::ok) {
-        let Ok(entry_metadata) = entry.metadata() else {
-            continue;
-        };
+#[cfg(unix)]
+fn metadata_identity(metadata: &fs::Metadata) -> Option<EntryIdentity> {
+    use std::os::unix::fs::MetadataExt;
 
-        if metadata_refers_to_same_entry(metadata, &entry_metadata) {
-            let Some(file_name) = entry.file_name().to_str().map(ToString::to_string) else {
-                continue;
-            };
+    Some((metadata.dev(), metadata.ino()))
+}
 
-            return Some((entry.path(), file_name));
-        }
-    }
+#[cfg(not(unix))]
+fn metadata_identity(_metadata: &fs::Metadata) -> Option<EntryIdentity> {
+    None
+}
 
+#[cfg(unix)]
+fn dir_entry_identity(entry: &fs::DirEntry) -> Option<EntryIdentity> {
+    entry.metadata().ok().as_ref().and_then(metadata_identity)
+}
+
+#[cfg(not(unix))]
+fn dir_entry_identity(_entry: &fs::DirEntry) -> Option<EntryIdentity> {
     None
 }
 
@@ -582,7 +616,7 @@ fn resolve_current_entry(path: &Path, metadata: &fs::Metadata) -> Option<(PathBu
 fn paths_refer_to_same_entry(left: &Path, right: &Path) -> bool {
     match (fs::metadata(left), fs::metadata(right)) {
         (Ok(left_metadata), Ok(right_metadata)) => {
-            metadata_refers_to_same_entry(&left_metadata, &right_metadata)
+            metadata_identity(&left_metadata) == metadata_identity(&right_metadata)
         }
         _ => false,
     }
@@ -594,18 +628,6 @@ fn paths_refer_to_same_entry(left: &Path, right: &Path) -> bool {
         (Ok(left_path), Ok(right_path)) => left_path == right_path,
         _ => false,
     }
-}
-
-#[cfg(unix)]
-fn metadata_refers_to_same_entry(left: &fs::Metadata, right: &fs::Metadata) -> bool {
-    use std::os::unix::fs::MetadataExt;
-
-    left.dev() == right.dev() && left.ino() == right.ino()
-}
-
-#[cfg(not(unix))]
-fn metadata_refers_to_same_entry(_left: &fs::Metadata, _right: &fs::Metadata) -> bool {
-    false
 }
 
 fn is_excluded_directory_name(name: &str) -> bool {

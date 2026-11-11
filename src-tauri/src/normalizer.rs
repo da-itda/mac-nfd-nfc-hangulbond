@@ -11,6 +11,12 @@ const TEMPORARY_EXTENSIONS: &[&str] = &[
     ".download",
     ".swp",
     ".lock",
+    // 받는 중인 파일: 예전 Edge·IE, Opera, uTorrent, qBittorrent, aria2(이어받기 정보)
+    ".partial",
+    ".opdownload",
+    ".!ut",
+    ".!qb",
+    ".aria2",
 ];
 
 const IGNORED_EXACT_NAMES: &[&str] = &[".DS_Store", "Thumbs.db", "desktop.ini"];
@@ -58,6 +64,21 @@ pub fn is_temporary_or_ignored_name(name: &str) -> bool {
     TEMPORARY_EXTENSIONS
         .iter()
         .any(|extension| lower_name.ends_with(extension))
+        || is_safe_save_temporary_name(name)
+}
+
+// macOS 앱이 저장하는 동안 잠깐 만드는 파일 (`보고서.rtf.sb-1c6f1c6e-oZVoAQ`). 저장 중에 이름을 바꾸면 저장이 깨진다.
+fn is_safe_save_temporary_name(name: &str) -> bool {
+    let Some((_, suffix)) = name.rsplit_once(".sb-") else {
+        return false;
+    };
+    let Some((hex, random)) = suffix.split_once('-') else {
+        return false;
+    };
+    !hex.is_empty()
+        && hex.chars().all(|c| c.is_ascii_hexdigit())
+        && !random.is_empty()
+        && random.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
 pub fn analyze_name(name: &str) -> NameAnalysis {
@@ -190,6 +211,12 @@ mod tests {
             "보고서.download",
             "보고서.swp",
             "보고서.lock",
+            "보고서.zip.partial",
+            "보고서.zip.opdownload",
+            "보고서.zip.!ut",
+            "보고서.zip.!qB",
+            "보고서.zip.aria2",
+            "보고서.rtf.sb-1c6f1c6e-oZVoAQ",
             "~$보고서.docx",
             ".숨김파일",
             ".DS_Store",
@@ -197,6 +224,10 @@ mod tests {
             "desktop.ini",
         ] {
             assert!(is_temporary_or_ignored_name(name));
+        }
+
+        for name in ["보고서.sb-최종.txt", "보고서.sb-.txt", "보고서.txt"] {
+            assert!(!is_temporary_or_ignored_name(name));
         }
     }
 }

@@ -15,6 +15,16 @@ use crate::settings::{AppSettings, WatchFolder};
 const DEBOUNCE_DURATION: Duration = Duration::from_secs(3);
 const RECENT_CONVERSION_IGNORE_DURATION: Duration = Duration::from_secs(10);
 const SWEEP_INTERVAL: Duration = Duration::from_secs(5);
+const MAX_SWEEP_INTERVAL: Duration = Duration::from_secs(60);
+// 주기 검사가 CPU를 2% 넘게 쓰지 않도록, 한 번 검사에 걸린 시간의 50배를 다음 간격으로 삼는다.
+const SWEEP_IDLE_FACTOR: u32 = 50;
+
+// 감시 폴더가 아주 크면 검사 간격을 늘린다. 이벤트는 그대로 바로 처리하므로 놓친 변경만 조금 늦게 잡힌다.
+fn next_sweep_interval(sweep_elapsed: Duration) -> Duration {
+    sweep_elapsed
+        .saturating_mul(SWEEP_IDLE_FACTOR)
+        .clamp(SWEEP_INTERVAL, MAX_SWEEP_INTERVAL)
+}
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -148,6 +158,7 @@ fn run_watch_loop(
     let mut recent_conversions = RecentConversions::new(RECENT_CONVERSION_IGNORE_DURATION);
     let mut reported_failures = ReportedFailures::default();
     let mut last_sweep = Instant::now();
+    let mut sweep_interval = SWEEP_INTERVAL;
 
     loop {
         if stop_rx.try_recv().is_ok() {
@@ -191,7 +202,8 @@ fn run_watch_loop(
             }
         }
 
-        if last_sweep.elapsed() >= SWEEP_INTERVAL {
+        if last_sweep.elapsed() >= sweep_interval {
+            let sweep_started = Instant::now();
             for folder in &folders {
                 match normalize_directory(
                     &folder.path,
@@ -218,6 +230,7 @@ fn run_watch_loop(
                 }
             }
             reported_failures.forget_missing();
+            sweep_interval = next_sweep_interval(sweep_started.elapsed());
             last_sweep = Instant::now();
         }
     }
@@ -408,6 +421,13 @@ mod tests {
         assert!(recent.should_ignore(&path));
         thread::sleep(Duration::from_millis(30));
         assert!(!recent.should_ignore(&path));
+    }
+
+    #[test]
+    fn sweep_interval_grows_with_sweep_cost() {
+        assert_eq!(next_sweep_interval(Duration::from_millis(30)), SWEEP_INTERVAL);
+        assert_eq!(next_sweep_interval(Duration::from_millis(300)), Duration::from_secs(15));
+        assert_eq!(next_sweep_interval(Duration::from_secs(5)), MAX_SWEEP_INTERVAL);
     }
 
     fn rename_result(status: &str, reason: Option<&str>) -> RenameResult {
