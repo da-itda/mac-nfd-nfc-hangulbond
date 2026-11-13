@@ -22,14 +22,14 @@
 
 | 구성 | 하는 일 |
 |---|---|
-| 한글본드 앱 | 맥 디스크의 파일명과 폴더명을 NFC로 정리합니다. 지정한 폴더를 감시해 새 파일도 자동으로 정리합니다. |
+| 한글본드 앱 | 맥과 Windows 디스크의 파일명과 폴더명을 NFC로 정리합니다. 지정한 폴더를 감시해 새 파일도 자동으로 정리합니다. |
 | 한글본드 Chrome 확장 | 맥 Chrome이 업로드할 때 이름을 다시 분리해 보내는 문제를 막습니다. 선택 기능으로 내려받는 파일 이름도 정리합니다(Windows에서도 동작, 0.2.0 웹 스토어 심사 후 제공). |
 
 ## 설치
 
-Apple silicon(M1 이후) Mac용입니다. Intel Mac은 지원하지 않습니다.
+맥 앱은 Apple silicon(M1 이후) Mac용입니다. Intel Mac은 지원하지 않습니다. Windows 앱은 64비트 Windows용이며 Windows 11에서 확인했습니다(0.2.0부터).
 
-### 방법 1. 터미널로 한 번에 설치 (앱 + Chrome 확장)
+### 맥 방법 1. 터미널로 한 번에 설치 (앱 + Chrome 확장)
 
 `터미널` 앱을 열고 아래 한 줄을 붙여 넣은 뒤 Return 키를 누릅니다.
 
@@ -44,16 +44,22 @@ curl -fsSL https://raw.githubusercontent.com/da-itda/mac-nfd-nfc-hangulbond/main
 - 같은 명령을 다시 실행하면 최신 버전으로 바뀝니다.
 - 실행 전에 스크립트 내용을 확인할 수 있습니다: [install.sh](install.sh)
 
-### 방법 2. 직접 다운로드
+### 맥 방법 2. 직접 다운로드
 
 1. [최신 릴리스](https://github.com/da-itda/mac-nfd-nfc-hangulbond/releases/latest)에서 `HangulBond_버전_aarch64.dmg`를 내려받습니다.
 2. DMG를 열고 `한글본드.app`을 `응용 프로그램` 폴더로 끌어 놓습니다.
 3. `응용 프로그램`에서 한글본드를 실행합니다. 메뉴 막대에 한글본드 아이콘이 나타납니다.
 4. Chrome을 쓴다면 앱이 한글본드 확장을 Chrome에 등록합니다. Chrome을 다시 열면 나오는 알림에서 `확장 프로그램 사용 설정`을 누르세요. macOS 보안 설정 때문에 등록할 수 없으면 Chrome 웹 스토어가 열리니 `Chrome에 추가`를 누르세요. 나중에 추가하려면 앱 `정보` 탭의 `Chrome 확장` → `설치`를 누르거나 [Chrome 웹 스토어](https://chromewebstore.google.com/detail/hmgopkkefgfppfedloeponobiamikomf)에서 추가합니다.
 
+### Windows
+
+1. [최신 릴리스](https://github.com/da-itda/mac-nfd-nfc-hangulbond/releases/latest)에서 `HangulBond_버전_x64-setup.exe`를 내려받아 실행합니다. 관리자 권한 없이 내 사용자 계정에 설치됩니다.
+2. 설치가 끝나면 작업 표시줄 오른쪽 알림 영역에 한글본드 아이콘이 나타납니다. 보이지 않으면 `^`(숨겨진 아이콘)를 눌러 확인하세요.
+3. 맥에서 받은 파일이 모이는 폴더(예: `다운로드`)를 감시 폴더로 추가하면, 자소 분리된 이름을 자동으로 정리합니다.
+
 ## 사용 방법
 
-1. 메뉴 막대의 한글본드 아이콘을 눌러 설정을 엽니다.
+1. 맥은 메뉴 막대의 한글본드 아이콘을 누른 뒤 `설정`을, Windows는 알림 영역의 한글본드 아이콘을 눌러 설정을 엽니다.
 2. `폴더` 탭에서 `+`를 눌러 정리할 폴더를 추가합니다.
 3. `검사`를 누르면 바뀔 이름 목록이 나옵니다.
 4. 정리할 항목을 확인하고 `시작`을 누릅니다.
@@ -82,7 +88,9 @@ curl -fsSL https://raw.githubusercontent.com/da-itda/mac-nfd-nfc-hangulbond/main
 
 실행 중인 앱을 종료하고 앱, 로그인 시 자동 실행 항목, 설정·로그·캐시, 개인정보 보호 권한 기록, Chrome 확장 등록을 모두 지웁니다. 설정을 남기려면 끝에 `--keep-settings`를 붙입니다: `... | bash -s -- --uninstall --keep-settings`
 
-직접 삭제하려면 메뉴 막대에서 `한글본드 종료`를 누른 뒤 `응용 프로그램`의 `한글본드.app`을 휴지통으로 옮깁니다. 설정과 로그는 `~/Library/Application Support/com.hangulbond.desktop`에 남으니 필요 없으면 지웁니다. Chrome 확장은 `chrome://extensions`에서 삭제합니다.
+직접 삭제하려면 메뉴 막대의 한글본드 아이콘에서 `종료`를 누른 뒤 `응용 프로그램`의 `한글본드.app`을 휴지통으로 옮깁니다. 설정과 로그는 `~/Library/Application Support/com.hangulbond.desktop`에 남으니 필요 없으면 지웁니다. Chrome 확장은 `chrome://extensions`에서 삭제합니다.
+
+Windows에서는 `설정` > `앱` > `설치된 앱`에서 한글본드를 제거합니다. 로그인 시 자동 실행 항목과 Chrome 확장 등록도 함께 지웁니다.
 
 ## 안전
 
@@ -115,5 +123,5 @@ curl -fsSL https://raw.githubusercontent.com/da-itda/mac-nfd-nfc-hangulbond/main
 - 구현: Tauri 2, Rust, JavaScript
 - 소스에서 실행: Node.js 20 이상과 Rust를 준비한 뒤 `npm install`, `npm run dev`
 - 테스트: `npm test`, `npm run test:rust`, `npm run test:extension`
-- Windows 빌드(개발 중): Windows에서 Node.js·Rust·Visual Studio Build Tools를 준비하고 `npm ci` 후 `npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'`
+- Windows 빌드: Windows에서 Node.js·Rust·Visual Studio Build Tools를 준비하고 `npm ci` 후 `npx tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'`
 - 문서 목록: [docs/README.md](docs/README.md)

@@ -25,7 +25,7 @@ Chromium(Chrome·Aside·Edge·Electron 앱)이 맥에서만 NFD로 보내는 이
 해결 방향:
 - 보내는 쪽: 맥 Chrome 웹 업로드는 한글본드 브라우저 확장으로 보정한다 (`docs/BROWSER_EXTENSION.md`). Safari는 확장 없이 정상이다. Mail·텔레그램·Electron 앱은 고칠 수 없다.
 - 받는 쪽: 직접 운영하는 웹 서비스라면 서버에서 업로드 파일명을 NFC로 정규화한다(PHP `Normalizer::normalize($name, Normalizer::FORM_C)`, JS `name.normalize("NFC")`, Python `unicodedata.normalize("NFC", name)`).
-- Windows 수신자: Chrome·Edge로 받는다면 확장 0.2.0의 `다운로드 파일명 정리`를 켠다. 이미 받은 파일은 Windows용 한글본드로 정리한다 (계획 검토 중).
+- Windows 수신자: Chrome·Edge로 받는다면 확장 0.2.0의 `다운로드 파일명 정리`를 켠다. 이미 받은 파일은 Windows용 한글본드(앱 0.2.0부터)로 정리한다.
 
 ## Windows에서 받은 파일 이름이 깨진다 (다운로드)
 
