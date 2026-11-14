@@ -6,6 +6,8 @@ mod scanner;
 mod settings;
 mod stabilization;
 #[cfg(target_os = "macos")]
+mod auto_update;
+#[cfg(target_os = "macos")]
 mod tray_popover;
 mod watcher;
 
@@ -894,6 +896,9 @@ pub fn run() {
                     let _ = window.hide();
                 }
             }
+
+            #[cfg(target_os = "macos")]
+            auto_update::spawn(app.handle().clone());
 
             Ok(())
         })

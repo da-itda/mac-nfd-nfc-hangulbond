@@ -306,8 +306,19 @@ async function init() {
   await refreshWatchStatus();
   await loadRecentLogs();
   setupChromeExtension();
-  setTimeout(autoUpdate, AUTO_UPDATE_DELAY_MS);
-  setInterval(autoUpdate, AUTO_UPDATE_INTERVAL_MS);
+  // 맥은 창이 숨겨져 있으면 JS 타이머가 멈추므로 Rust(auto_update.rs)가 확인하고,
+  // 설치하지 못할 때만 알려 준다. Windows는 숨겨져 있어도 타이머가 돌아 여기서 확인한다.
+  if (isWindows) {
+    setTimeout(autoUpdate, AUTO_UPDATE_DELAY_MS);
+    setInterval(autoUpdate, AUTO_UPDATE_INTERVAL_MS);
+  } else {
+    await listen("auto-update-available", (event) => {
+      if (!updateInProgress) {
+        updateState.textContent = `새 버전 ${event.payload}`;
+        updateState.title = "확인을 누르면 설치합니다.";
+      }
+    });
+  }
   await listen("watcher-results", async (event) => {
     const results = Array.isArray(event.payload) ? event.payload : [];
     if (results.length > 0) {
