@@ -1,15 +1,17 @@
-// macOS 자동 업데이트.
-// 설정 창이 숨겨져 있으면 WKWebView가 페이지의 JS 타이머를 멈춰서, main.js의 자동 확인이
-// 창을 열기 전까지 돌지 않는다 (0.2.0에서 확인). 그래서 맥에서는 이 스레드가 확인한다.
-// 앱을 켜고 30초 뒤와 6시간마다 확인한다. 설정 창이 보이거나 검사·정리 중이면 설치하지 않고
-// 정보 탭에 새 버전을 알린다. Windows는 main.js의 확인이 그대로 동작한다.
+// 자동 업데이트. 맥·Windows 공용.
+// 설정 창이 숨겨져 있으면 맥 WKWebView가 페이지의 JS 타이머를 멈춰서, JS로 확인하면
+// 창을 열기 전까지 돌지 않는다 (0.2.0에서 확인). 그래서 Rust 스레드가 확인한다.
+// 앱을 켜고 30초 뒤와 6시간마다 확인한다. 설정 창이나 팝오버가 보이거나 검사·정리 중이면
+// 설치하지 않고 설정 창 정보 탭에 새 버전을 알린다. 팝오버는 열릴 때 스스로 확인한다.
+// 팝오버·정보 탭의 업데이트 단추(manual_update.rs)와 같은 표시를 잡아 서로 겹치지 않는다.
+// Windows는 download_and_install이 설치 파일을 띄우고 앱을 끝내며, 설치 파일이 앱을 다시 켠다.
 use std::thread;
 use std::time::{Duration, SystemTime};
 
 use tauri::{async_runtime, AppHandle, Emitter, Manager};
 use tauri_plugin_updater::UpdaterExt;
 
-use crate::{release_runtime_guards, AppState};
+use crate::{manual_update, release_runtime_guards, tray_popover, AppState};
 
 /// 정보 탭에 새 버전을 알리는 이벤트. 값은 새 버전 문자열.
 pub const AVAILABLE_EVENT: &str = "auto-update-available";
@@ -38,6 +40,10 @@ pub fn spawn(app: AppHandle) {
 }
 
 async fn check_once(app: &AppHandle) {
+    // 업데이트 단추로 확인·설치 중이면 이번 확인은 건너뛴다. 끝날 때까지 단추도 막는다.
+    let Some(_busy) = manual_update::try_begin() else {
+        return;
+    };
     let Ok(updater) = app.updater() else {
         return;
     };
@@ -52,7 +58,7 @@ async fn check_once(app: &AppHandle) {
     if update.download_and_install(|_, _| {}, || {}).await.is_err() {
         return;
     }
-    // 내려받는 사이 설정 창을 열었거나 정리를 시작했으면 끝날 때까지 기다렸다가 재시작한다.
+    // 내려받는 사이 정리를 시작했으면 끝날 때까지 기다렸다가 재시작한다. (맥만 여기에 온다)
     while app
         .state::<AppState>()
         .manual_operation
@@ -68,15 +74,16 @@ async fn check_once(app: &AppHandle) {
 }
 
 fn is_busy(app: &AppHandle) -> bool {
-    let window_visible = app
-        .get_webview_window("main")
-        .and_then(|window| window.is_visible().ok())
-        .unwrap_or(false);
+    let visible = |label: &str| {
+        app.get_webview_window(label)
+            .and_then(|window| window.is_visible().ok())
+            .unwrap_or(false)
+    };
     let operation_running = app
         .state::<AppState>()
         .manual_operation
         .lock()
         .map(|active| active.is_some())
         .unwrap_or(true);
-    window_visible || operation_running
+    visible("main") || visible(tray_popover::LABEL) || operation_running
 }

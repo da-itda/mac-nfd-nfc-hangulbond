@@ -5,7 +5,6 @@ mod os;
 mod scanner;
 mod settings;
 mod stabilization;
-#[cfg(target_os = "macos")]
 mod auto_update;
 mod manual_update;
 mod tray_popover;
@@ -878,7 +877,6 @@ pub fn run() {
                 }
             }
 
-            #[cfg(target_os = "macos")]
             auto_update::spawn(app.handle().clone());
 
             Ok(())

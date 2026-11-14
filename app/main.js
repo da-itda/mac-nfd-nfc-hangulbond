@@ -1,7 +1,6 @@
 const { invoke } = window.__TAURI__.core;
 const { open } = window.__TAURI__.dialog;
 const { listen } = window.__TAURI__.event;
-const updater = window.__TAURI__.updater;
 const appWindow = window.__TAURI__.window.getCurrentWindow();
 const { LogicalSize } = window.__TAURI__.dpi;
 
@@ -63,8 +62,6 @@ const updateProgressDetail = document.querySelector("#update-progress-detail");
 const extensionState = document.querySelector("#extension-state");
 const openExtensionStoreButton = document.querySelector("#open-extension-store");
 
-const AUTO_UPDATE_DELAY_MS = 30 * 1000;
-const AUTO_UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const EXTENSION_LABELS = {
   noChrome: "Chrome 없음",
   installed: "설치됨",
@@ -306,19 +303,26 @@ async function init() {
   await refreshWatchStatus();
   await loadRecentLogs();
   setupChromeExtension();
-  // 맥은 창이 숨겨져 있으면 JS 타이머가 멈추므로 Rust(auto_update.rs)가 확인하고,
-  // 설치하지 못할 때만 알려 준다. Windows는 숨겨져 있어도 타이머가 돌아 여기서 확인한다.
-  if (isWindows) {
-    setTimeout(autoUpdate, AUTO_UPDATE_DELAY_MS);
-    setInterval(autoUpdate, AUTO_UPDATE_INTERVAL_MS);
-  } else {
-    await listen("auto-update-available", (event) => {
-      if (!updateInProgress) {
-        updateState.textContent = `새 버전 ${event.payload}`;
-        updateState.title = "확인을 누르면 설치합니다.";
-      }
-    });
-  }
+  // 자동 업데이트는 Rust(auto_update.rs)가 확인·설치하고, 설치하지 못할 때만 여기에 알려 준다.
+  await listen("auto-update-available", (event) => {
+    if (!updateInProgress) {
+      updateState.textContent = `새 버전 ${event.payload}`;
+      updateState.title = "확인을 누르면 설치합니다.";
+    }
+  });
+  // 확인 단추로 설치할 때 내려받기 진행. manual_update.rs가 모든 창에 보낸다.
+  await listen("popover-update-progress", (event) => {
+    if (!updateInProgress) {
+      return;
+    }
+    const downloaded = Number(event.payload?.downloaded) || 0;
+    const total = Number(event.payload?.total) || 0;
+    if (total && downloaded >= total) {
+      showUpdateProgress("설치 중", total, total);
+    } else {
+      showUpdateProgress("다운로드 중", downloaded, total || downloaded || 1);
+    }
+  });
   await listen("watcher-results", async (event) => {
     const results = Array.isArray(event.payload) ? event.payload : [];
     if (results.length > 0) {
@@ -422,12 +426,9 @@ async function loadAppInfo() {
   launchState.textContent = info.launchAtLogin ? "켜짐" : "꺼짐";
 }
 
+// 정보 탭의 확인 단추. 확인과 설치는 Rust(manual_update.rs)가 하고, 새 버전이 있으면 바로 설치한다.
+// 팝오버 단추나 자동 업데이트가 확인·설치 중이면 "busy"로 거절된다.
 async function checkForUpdates() {
-  if (!updater?.check) {
-    updateState.textContent = "사용할 수 없음";
-    updateState.title = "업데이트 플러그인을 불러오지 못했습니다.";
-    return;
-  }
   if (updateInProgress) {
     return;
   }
@@ -439,81 +440,28 @@ async function checkForUpdates() {
   hideUpdateProgress();
 
   try {
-    const update = await updater.check();
-
-    if (!update) {
+    const version = await invoke("check_app_update");
+    if (!version) {
       updateState.textContent = "최신 버전";
       return;
     }
 
-    await installUpdate(update);
+    updateState.textContent = `새 버전 ${version}`;
+    showUpdateProgress("다운로드 준비 중", 0, 1);
+    // 성공하면 맥은 다시 시작하고, Windows는 설치 파일이 앱을 끝낸 뒤 다시 켠다. 돌아오지 않는다.
+    await invoke("install_app_update");
   } catch (error) {
+    if (String(error) === "busy") {
+      hideUpdateProgress();
+      updateState.textContent = "업데이트 진행 중";
+      updateState.title = "다른 곳에서 업데이트를 확인하거나 설치하고 있습니다.";
+      return;
+    }
     showUpdateError(error);
   } finally {
     updateInProgress = false;
     checkUpdateButton.disabled = false;
   }
-}
-
-// 앱을 켠 뒤와 6시간마다 새 버전을 확인한다.
-// 설정 창이 닫혀 있고 검사·정리 중이 아니면 바로 설치하고 재시작한다. 아니면 정보 탭에 알린다.
-async function autoUpdate() {
-  if (!updater?.check || updateInProgress) {
-    return;
-  }
-
-  updateInProgress = true;
-  try {
-    const update = await updater.check();
-    if (!update) {
-      return;
-    }
-
-    const busy = !batchProgress.hidden || (await appWindow.isVisible());
-    if (busy) {
-      updateState.textContent = `새 버전 ${update.version}`;
-      updateState.title = "확인을 누르면 설치합니다.";
-      return;
-    }
-
-    checkUpdateButton.disabled = true;
-    await installUpdate(update);
-  } catch (error) {
-    // 네트워크 오류 등은 다음 확인 때 다시 시도한다.
-    updateState.title = String(error);
-  } finally {
-    updateInProgress = false;
-    checkUpdateButton.disabled = false;
-  }
-}
-
-async function installUpdate(update) {
-  updateState.textContent = `새 버전 ${update.version}`;
-  showUpdateProgress("다운로드 준비 중", 0, 1);
-
-  let downloaded = 0;
-  let contentLength = 0;
-  await update.downloadAndInstall((event) => {
-    if (event.event === "Started") {
-      downloaded = 0;
-      contentLength = Number(event.data.contentLength) || 0;
-      showUpdateProgress("다운로드 중", 0, contentLength || 1);
-      return;
-    }
-
-    if (event.event === "Progress") {
-      downloaded += Number(event.data.chunkLength) || 0;
-      showUpdateProgress("다운로드 중", downloaded, contentLength || downloaded || 1);
-      return;
-    }
-
-    if (event.event === "Finished") {
-      showUpdateProgress("설치 중", contentLength || downloaded || 1, contentLength || downloaded || 1);
-    }
-  });
-
-  updateState.textContent = "재시작 중";
-  await invoke("restart_app");
 }
 
 function showUpdateError(error) {
