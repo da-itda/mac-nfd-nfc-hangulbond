@@ -59,11 +59,12 @@ listen("popover-update-progress", (event) => {
   }
 });
 
-listen("popover-shown", refresh);
+// 팝오버 창은 앱을 켤 때 숨긴 채 만들어지므로, 처음 읽기에서는 업데이트를 확인하지 않는다.
+listen("popover-shown", () => refresh({ checkUpdate: true }));
 renderUpdate();
-refresh();
+refresh({ checkUpdate: false });
 
-async function refresh() {
+async function refresh({ checkUpdate: shouldCheck }) {
   const [settings, status, logs, info] = await Promise.all([
     invoke("load_settings").catch(() => null),
     invoke("auto_watch_status").catch(() => null),
@@ -75,7 +76,7 @@ async function refresh() {
   renderFolders(settings?.watchFolders ?? []);
   appVersion.textContent = info ? `버전 ${info.version}` : "버전";
   await fitWindow();
-  if (Date.now() - lastUpdateCheck > UPDATE_RECHECK_MS) {
+  if (shouldCheck && Date.now() - lastUpdateCheck > UPDATE_RECHECK_MS) {
     checkUpdate({ quiet: true });
   }
 }

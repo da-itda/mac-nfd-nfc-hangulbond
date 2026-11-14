@@ -14,7 +14,7 @@ const PROGRESS_EVENT: &str = "popover-update-progress";
 
 // 확인에서 찾은 새 버전. 설치 단추를 누르면 이것을 설치한다.
 static FOUND: Mutex<Option<Update>> = Mutex::new(None);
-// 확인·설치가 겹치지 않게 한다.
+// 확인·설치가 겹치지 않게 한다. 자동 업데이트(auto_update.rs)도 같은 표시를 잡는다.
 static BUSY: AtomicBool = AtomicBool::new(false);
 
 #[derive(serde::Serialize, Clone)]
@@ -24,15 +24,21 @@ struct Progress {
     total: Option<u64>,
 }
 
-struct BusyGuard;
+/// 잡고 있는 동안 다른 업데이트 확인·설치를 막는다. 놓으면(drop) 풀린다.
+pub(crate) struct BusyGuard;
 
 impl BusyGuard {
     fn acquire() -> Result<Self, String> {
-        if BUSY.swap(true, Ordering::SeqCst) {
-            return Err("busy".into());
-        }
-        Ok(Self)
+        try_begin().ok_or_else(|| "busy".to_string())
     }
+}
+
+/// 다른 확인·설치가 진행 중이면 None.
+pub(crate) fn try_begin() -> Option<BusyGuard> {
+    if BUSY.swap(true, Ordering::SeqCst) {
+        return None;
+    }
+    Some(BusyGuard)
 }
 
 impl Drop for BusyGuard {
