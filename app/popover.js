@@ -24,7 +24,7 @@ const updateIconBox = document.querySelector("#update-icon-box");
 const updateIcon = document.querySelector("#update-icon");
 const updateText = document.querySelector("#update-text");
 
-// idle(확인 전) · checking · latest · available · downloading · installing · failed
+// idle(확인 전) · checking · latest · available · downloading · installing · busy(다른 곳에서 진행 중) · failed
 let updateState = "idle";
 let newVersion = "";
 let lastUpdateCheck = 0;
@@ -100,7 +100,8 @@ async function checkUpdate({ quiet }) {
     }
   } catch (error) {
     if (String(error).includes("busy")) {
-      setUpdateState(previous);
+      // 자동 업데이트나 설정 창이 확인·설치 중이다.
+      setUpdateState(quiet ? previous : "busy");
       return;
     }
     if (quiet) {
@@ -117,7 +118,7 @@ async function installUpdate() {
     // 성공하면 앱이 다시 시작되므로 돌아오지 않는다.
     await invoke("install_app_update");
   } catch (error) {
-    setUpdateState("failed", { error });
+    setUpdateState(String(error).includes("busy") ? "busy" : "failed", { error });
   }
 }
 
@@ -147,6 +148,7 @@ function renderUpdate({ percent, error } = {}) {
       tip: ""
     },
     installing: { icon: "icon-download", tone: "is-accent", text: "설치 중", tip: "" },
+    busy: { icon: "icon-refresh", tone: "is-spinning", text: "업데이트 진행 중", tip: "눌러서 다시 확인합니다." },
     failed: {
       icon: "icon-info",
       tone: "is-failed",
