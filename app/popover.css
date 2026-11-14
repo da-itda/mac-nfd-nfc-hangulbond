@@ -1,5 +1,6 @@
-/* 맥 메뉴 막대 팝오버. 색·글꼴은 tokens.css를 쓴다.
-   창은 투명하고, 둥근 판(.popover) 하나가 창을 꽉 채운다. 그림자는 macOS 창이 그린다. */
+/* 알림 영역 팝오버(맥·Windows 공용). 색·글꼴은 tokens.css를 쓴다.
+   맥: 창은 투명하고, 둥근 판(.popover) 하나가 창을 꽉 채운다. 그림자는 macOS 창이 그린다.
+   Windows: 창이 불투명하고 Windows 11이 모서리·테두리·그림자를 그리므로 판의 선과 둥근 모서리를 뺀다. */
 
 * {
   box-sizing: border-box;
@@ -31,6 +32,16 @@ ul {
   border-radius: 12px;
   background: var(--layer-bg);
   color: var(--text);
+}
+
+.platform-windows,
+.platform-windows body {
+  background: var(--layer-bg);
+}
+
+.platform-windows .popover {
+  border: 0;
+  border-radius: 0;
 }
 
 .pop-head {
@@ -132,6 +143,14 @@ ul {
   --icon: url("./icons/regular/info.svg");
 }
 
+.icon-refresh {
+  --icon: url("./icons/regular/arrow-clockwise.svg");
+}
+
+.icon-download {
+  --icon: url("./icons/regular/download-simple.svg");
+}
+
 .pop-item-text {
   display: flex;
   flex: 1;
@@ -181,13 +200,95 @@ ul {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 12px 10px 16px;
+  padding: 8px 12px 8px 8px;
   border-top: 1px solid var(--divider);
 }
 
-.pop-version {
+/* 맨 아래 왼쪽 업데이트 단추: 아이콘 + 버전 + 상태(업데이트 확인·확인 중·최신 버전·새 버전) */
+.pop-update {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  transition: background-color 0.12s ease;
+}
+
+.pop-update:hover:not(:disabled) {
+  background: var(--subtle-hover);
+}
+
+.pop-update:active:not(:disabled) {
+  background: var(--control-bg-pressed);
+}
+
+.pop-update-icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--control-alt-bg);
   color: var(--text-secondary);
+}
+
+.pop-update-icon.is-success {
+  color: var(--success);
+}
+
+.pop-update-icon.is-failed {
+  color: var(--danger);
+}
+
+.pop-update-icon.is-accent {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.pop-update-icon.is-spinning .icon {
+  animation: pop-spin 0.9s linear infinite;
+}
+
+@keyframes pop-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pop-update-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pop-update-title,
+.pop-update-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pop-update-title {
   font-size: 12px;
+}
+
+.pop-update-detail {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.pop-update.is-available .pop-update-detail {
+  color: var(--accent-text);
+  font-weight: 600;
 }
 
 .pop-foot-buttons {

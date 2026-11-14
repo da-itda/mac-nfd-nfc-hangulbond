@@ -1,13 +1,17 @@
-// 맥 메뉴 막대 팝오버: 감시 상태, 최근 정리 3개, 감시 폴더, 설정·종료 단추.
-// 열릴 때마다(lib.rs가 popover-shown을 보냄) 새로 읽고, 내용 높이에 맞춰 창 높이를 바꾼다.
+// 알림 영역 팝오버(맥 메뉴 막대 클릭, Windows 작업 표시줄 오른쪽 클릭):
+// 감시 상태, 최근 정리 3개, 감시 폴더, 맨 아래 업데이트·설정·종료 단추.
+// 열릴 때마다(tray_popover.rs가 popover-shown을 보냄) 새로 읽고, 내용 높이에 맞춰 창 높이를 바꾼다.
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const appWindow = window.__TAURI__.window.getCurrentWindow();
-const { LogicalSize } = window.__TAURI__.dpi;
 
-const POPOVER_WIDTH = 320;
+const isWindows = navigator.userAgent.includes("Windows");
+document.documentElement.classList.add(isWindows ? "platform-windows" : "platform-mac");
+
 const RECENT_LIMIT = 3;
 const FOLDER_LIMIT = 3;
+// 팝오버를 열 때 마지막 확인에서 이만큼 지났으면 새 버전을 다시 확인한다.
+const UPDATE_RECHECK_MS = 30 * 60 * 1000;
 
 const panel = document.querySelector(".popover");
 const statusDot = document.querySelector("#status-dot");
@@ -15,6 +19,15 @@ const statusText = document.querySelector("#status-text");
 const recentList = document.querySelector("#recent-list");
 const folderList = document.querySelector("#folder-list");
 const appVersion = document.querySelector("#app-version");
+const updateButton = document.querySelector("#update-button");
+const updateIconBox = document.querySelector("#update-icon-box");
+const updateIcon = document.querySelector("#update-icon");
+const updateText = document.querySelector("#update-text");
+
+// idle(확인 전) · checking · latest · available · downloading · installing · failed
+let updateState = "idle";
+let newVersion = "";
+let lastUpdateCheck = 0;
 
 for (const button of document.querySelectorAll("[data-action]")) {
   button.addEventListener("click", () => {
@@ -30,7 +43,24 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+updateButton.addEventListener("click", () => {
+  if (updateState === "available") {
+    installUpdate();
+  } else if (updateState !== "checking" && updateState !== "downloading" && updateState !== "installing") {
+    checkUpdate({ quiet: false });
+  }
+});
+
+listen("popover-update-progress", (event) => {
+  const { downloaded, total } = event.payload;
+  if (total) {
+    const percent = Math.min(100, Math.floor((downloaded / total) * 100));
+    setUpdateState(percent >= 100 ? "installing" : "downloading", { percent });
+  }
+});
+
 listen("popover-shown", refresh);
+renderUpdate();
 refresh();
 
 async function refresh() {
@@ -43,8 +73,93 @@ async function refresh() {
   renderStatus(settings, status);
   renderRecent(logs);
   renderFolders(settings?.watchFolders ?? []);
-  appVersion.textContent = info ? `버전 ${info.version}` : "";
+  appVersion.textContent = info ? `버전 ${info.version}` : "버전";
   await fitWindow();
+  if (Date.now() - lastUpdateCheck > UPDATE_RECHECK_MS) {
+    checkUpdate({ quiet: true });
+  }
+}
+
+// quiet: 팝오버를 열 때 저절로 하는 확인. 확인 중 표시와 실패 표시를 하지 않는다.
+async function checkUpdate({ quiet }) {
+  if (["checking", "downloading", "installing"].includes(updateState)) {
+    return;
+  }
+  const previous = updateState;
+  if (!quiet) {
+    setUpdateState("checking");
+  }
+  try {
+    const version = await invoke("check_app_update");
+    lastUpdateCheck = Date.now();
+    if (version) {
+      setUpdateState("available", { version });
+    } else {
+      setUpdateState("latest");
+    }
+  } catch (error) {
+    if (String(error).includes("busy")) {
+      setUpdateState(previous);
+      return;
+    }
+    if (quiet) {
+      setUpdateState(previous);
+    } else {
+      setUpdateState("failed", { error });
+    }
+  }
+}
+
+async function installUpdate() {
+  setUpdateState("downloading", { percent: 0 });
+  try {
+    // 성공하면 앱이 다시 시작되므로 돌아오지 않는다.
+    await invoke("install_app_update");
+  } catch (error) {
+    setUpdateState("failed", { error });
+  }
+}
+
+function setUpdateState(state, { version, percent, error } = {}) {
+  updateState = state;
+  if (version) {
+    newVersion = version;
+  }
+  renderUpdate({ percent, error });
+}
+
+function renderUpdate({ percent, error } = {}) {
+  const view = {
+    idle: { icon: "icon-refresh", text: "업데이트 확인", tip: "새 버전이 있는지 확인합니다." },
+    checking: { icon: "icon-refresh", tone: "is-spinning", text: "확인 중", tip: "" },
+    latest: { icon: "icon-check", tone: "is-success", text: "최신 버전", tip: "눌러서 다시 확인합니다." },
+    available: {
+      icon: "icon-download",
+      tone: "is-accent",
+      text: `새 버전 ${newVersion} 업데이트`,
+      tip: "눌러서 설치하고 다시 시작합니다."
+    },
+    downloading: {
+      icon: "icon-download",
+      tone: "is-accent",
+      text: `내려받는 중 ${percent ?? 0}%`,
+      tip: ""
+    },
+    installing: { icon: "icon-download", tone: "is-accent", text: "설치 중", tip: "" },
+    failed: {
+      icon: "icon-info",
+      tone: "is-failed",
+      text: "확인 실패 · 다시 시도",
+      tip: error ? String(error) : ""
+    }
+  }[updateState];
+
+  updateIconBox.className = `pop-update-icon ${view.tone ?? ""}`.trim();
+  updateIcon.className = `icon ${view.icon}`;
+  updateText.textContent = view.text;
+  updateButton.classList.toggle("is-available", updateState === "available");
+  updateButton.disabled = ["checking", "downloading", "installing"].includes(updateState);
+  updateButton.title = view.tip;
 }
 
 function renderStatus(settings, status) {
@@ -144,7 +259,7 @@ function emptyRow(message) {
 async function fitWindow() {
   const height = Math.ceil(panel.getBoundingClientRect().height);
   try {
-    await appWindow.setSize(new LogicalSize(POPOVER_WIDTH, height));
+    await invoke("fit_popover", { height });
   } catch (error) {
     console.warn("failed to fit popover", error);
   }
@@ -177,7 +292,9 @@ function parentName(path) {
   return parts.at(-2) ?? "";
 }
 
-// /Users/<이름>/... 는 ~/... 로 줄여 보여 준다.
+// /Users/<이름>/... 와 C:\Users\<이름>\... 는 ~ 로 줄여 보여 준다.
 function shortPath(path) {
-  return String(path).replace(/^\/Users\/[^/]+/, "~");
+  return String(path)
+    .replace(/^\/Users\/[^/]+/, "~")
+    .replace(/^[A-Za-z]:\\Users\\[^\\]+/, "~");
 }

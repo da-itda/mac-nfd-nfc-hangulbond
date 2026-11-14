@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" class="platform-mac">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,7 +31,15 @@
       </section>
 
       <footer class="pop-foot">
-        <span id="app-version" class="pop-version"></span>
+        <button id="update-button" class="pop-update" type="button">
+          <span id="update-icon-box" class="pop-update-icon">
+            <span id="update-icon" class="icon icon-refresh"></span>
+          </span>
+          <span class="pop-update-text">
+            <span id="app-version" class="pop-update-title">버전</span>
+            <span id="update-text" class="pop-update-detail">업데이트 확인</span>
+          </span>
+        </button>
         <span class="pop-foot-buttons">
           <button class="pill-button" type="button" data-action="settings">설정</button>
           <button class="pill-button" type="button" data-action="quit">종료</button>

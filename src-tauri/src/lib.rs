@@ -7,7 +7,7 @@ mod settings;
 mod stabilization;
 #[cfg(target_os = "macos")]
 mod auto_update;
-#[cfg(target_os = "macos")]
+mod manual_update;
 mod tray_popover;
 mod watcher;
 
@@ -31,8 +31,6 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, WindowEvent,
 };
-#[cfg(not(target_os = "macos"))]
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri_plugin_autostart::ManagerExt;
 use watcher::{WatchService, WatchStatus};
 
@@ -359,7 +357,6 @@ fn open_extension_store() -> Result<(), String> {
 // 팝오버의 단추: 즉시 확인, 설정 열기, 종료
 #[tauri::command]
 fn popover_action(app: AppHandle, action: String) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
     tray_popover::hide(&app);
     match action.as_str() {
         "scan_now" => start_scan_now(&app),
@@ -812,48 +809,32 @@ pub fn run() {
                 .icon(tray_icon)
                 .icon_as_template(cfg!(target_os = "macos"))
                 .tooltip("한글본드");
-            // macOS: 메뉴를 붙이면 아이콘을 누를 때 시스템이 메뉴를 먼저 띄운다.
-            // 메뉴 없이 팝오버만 쓰고, 즉시 확인·설정·종료는 팝오버 단추로 한다.
-            // Windows: 왼쪽 클릭은 설정 창, 오른쪽 클릭은 메뉴.
-            #[cfg(not(target_os = "macos"))]
-            let tray_builder = {
-                let scan_now =
-                    MenuItem::with_id(app, "scan_now", "즉시 확인 및 변경", true, None::<&str>)?;
-                let show_settings =
-                    MenuItem::with_id(app, "show_settings", "한글본드 설정", true, None::<&str>)?;
-                let quit = MenuItem::with_id(app, "quit", "한글본드 종료", true, None::<&str>)?;
-                let separator = PredefinedMenuItem::separator(app)?;
-                let menu =
-                    Menu::with_items(app, &[&scan_now, &show_settings, &separator, &quit])?;
-                tray_builder.menu(&menu).show_menu_on_left_click(false)
-            };
+            // 시스템 메뉴 대신 두 OS 모두 같은 팝오버(popover.html)를 띄운다.
+            // 맥: 메뉴 막대 아이콘을 누르면 팝오버. 메뉴를 붙이면 시스템이 메뉴를 먼저 띄우므로 붙이지 않는다.
+            // Windows: 왼쪽 클릭은 설정 창, 오른쪽 클릭은 팝오버.
             let _tray = tray_builder
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "scan_now" => start_scan_now(app),
-                    "show_settings" => show_main_window(app),
-                    "quit" => app.exit(0),
-                    _ => {}
-                })
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
+                    let TrayIconEvent::Click {
+                        button,
                         button_state: MouseButtonState::Up,
                         rect,
                         ..
                     } = event
-                    {
+                    else {
+                        return;
+                    };
+                    match button {
                         #[cfg(target_os = "macos")]
-                        tray_popover::toggle(tray.app_handle(), rect);
+                        MouseButton::Left => tray_popover::toggle(tray.app_handle(), rect),
                         #[cfg(not(target_os = "macos"))]
-                        {
-                            let _ = rect;
-                            show_main_window(tray.app_handle());
-                        }
+                        MouseButton::Left => show_main_window(tray.app_handle()),
+                        #[cfg(not(target_os = "macos"))]
+                        MouseButton::Right => tray_popover::toggle(tray.app_handle(), rect),
+                        _ => {}
                     }
                 })
                 .build(app)?;
 
-            #[cfg(target_os = "macos")]
             tray_popover::create(app.handle())?;
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_zoom(PAGE_ZOOM);
@@ -919,14 +900,16 @@ pub fn run() {
             register_chrome_extension,
             open_extension_store,
             popover_action,
-            restart_app
+            restart_app,
+            tray_popover::fit_popover,
+            manual_update::check_app_update,
+            manual_update::install_app_update
         ])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
-            #[cfg(target_os = "macos")]
             WindowEvent::Focused(false) if window.label() == tray_popover::LABEL => {
                 tray_popover::on_focus_lost(window.app_handle());
             }
