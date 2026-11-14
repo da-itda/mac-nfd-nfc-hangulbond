@@ -1,6 +1,6 @@
 [package]
 name = "hangul-nfc-normalizer"
-version = "0.2.0"
+version = "0.2.1"
 description = "Safely normalize Korean file and folder names to NFC."
 authors = ["Codex"]
 edition = "2021"
